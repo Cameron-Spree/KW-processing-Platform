@@ -19,7 +19,8 @@
     webhooks: {
       masterUrl: ''
     },
-    executionTimeMs: 0
+    executionTimeMs: 0,
+    activeReassignKw: null
   };
 
   // DOM Elements Cache
@@ -79,6 +80,19 @@
       btnCloseRuleModal: document.getElementById('btn-close-rule-modal'),
       btnSaveRules: document.getElementById('btn-save-rules'),
       rulesTextarea: document.getElementById('rules-textarea'),
+
+      reassignModal: document.getElementById('reassign-modal'),
+      btnCloseReassignModal: document.getElementById('btn-close-reassign-modal'),
+      reassignKwName: document.getElementById('reassign-kw-name'),
+      reassignBranchSelect: document.getElementById('reassign-branch-select'),
+      btnSaveReassign: document.getElementById('btn-save-reassign'),
+
+      newCategoryModal: document.getElementById('new-category-modal'),
+      btnCloseCatModal: document.getElementById('btn-close-cat-modal'),
+      inputCatName: document.getElementById('input-cat-name'),
+      inputCatIcon: document.getElementById('input-cat-icon'),
+      inputCatTokens: document.getElementById('input-cat-tokens'),
+      btnSaveNewCat: document.getElementById('btn-save-new-cat'),
 
       scriptModal: document.getElementById('script-modal'),
       btnCloseScriptModal: document.getElementById('btn-close-script-modal'),
@@ -167,7 +181,23 @@
       dom.btnSaveRules.addEventListener('click', handleSaveRules);
     }
 
-    // 5. Auto-Save Master Webhook URL
+    // 5. Reassign Modal Controls
+    if (dom.btnCloseReassignModal) {
+      dom.btnCloseReassignModal.addEventListener('click', () => closeModal(dom.reassignModal));
+    }
+    if (dom.btnSaveReassign) {
+      dom.btnSaveReassign.addEventListener('click', handleSaveReassign);
+    }
+
+    // 6. New Custom Category Modal Controls
+    if (dom.btnCloseCatModal) {
+      dom.btnCloseCatModal.addEventListener('click', () => closeModal(dom.newCategoryModal));
+    }
+    if (dom.btnSaveNewCat) {
+      dom.btnSaveNewCat.addEventListener('click', handleSaveNewCat);
+    }
+
+    // 7. Auto-Save Master Webhook URL
     if (dom.urlMaster) {
       dom.urlMaster.addEventListener('input', (e) => {
         state.webhooks.masterUrl = e.target.value.trim();
@@ -397,7 +427,7 @@
     dom.taxonomyTableBody.innerHTML = rowsHtml;
   }
 
-  /* --- Tab 3: Mindmap Renderer --- */
+  /* --- Tab 3: Mindmap Renderer & Audit Handlers --- */
   function renderMindmapView() {
     if (!dom.mindmapCanvasContainer || !window.SubClusterEngine || !window.MindmapRenderer) return;
 
@@ -407,10 +437,50 @@
     window.MindmapRenderer.renderMindmap(
       treeData,
       dom.mindmapCanvasContainer,
-      (branch) => {
-        showToast(`Sub-theme "${branch.label}" selected!`, 'info');
-      }
+      (kwStr) => openReassignModal(kwStr),
+      () => openModal(dom.newCategoryModal)
     );
+  }
+
+  function openReassignModal(kwStr) {
+    state.activeReassignKw = kwStr;
+    dom.reassignKwName.textContent = `"${kwStr}"`;
+
+    const subThemes = window.SubClusterEngine.getSubThemes();
+    dom.reassignBranchSelect.innerHTML = subThemes.map(st => `
+      <option value="${st.id}">${st.icon} ${st.label}</option>
+    `).join('');
+
+    openModal(dom.reassignModal);
+  }
+
+  function handleSaveReassign() {
+    if (!state.activeReassignKw) return;
+    const targetBranchId = dom.reassignBranchSelect.value;
+    window.SubClusterEngine.reassignKeyword(state.activeReassignKw, targetBranchId);
+    closeModal(dom.reassignModal);
+    renderMindmapView();
+    showToast(`Reassigned "${state.activeReassignKw}" successfully!`, 'success');
+  }
+
+  function handleSaveNewCat() {
+    const name = dom.inputCatName.value.trim();
+    const icon = dom.inputCatIcon.value.trim() || '🏷️';
+    const tokens = dom.inputCatTokens.value.split(',').map(t => t.trim()).filter(Boolean);
+
+    if (!name) {
+      showToast('Please enter a category name.', 'error');
+      return;
+    }
+
+    window.SubClusterEngine.addCustomCategory(name, icon, tokens);
+    closeModal(dom.newCategoryModal);
+
+    dom.inputCatName.value = '';
+    dom.inputCatTokens.value = '';
+
+    renderMindmapView();
+    showToast(`Created custom category "${name}" & re-clustered data!`, 'success');
   }
 
   /* --- Modals & Helpers --- */
