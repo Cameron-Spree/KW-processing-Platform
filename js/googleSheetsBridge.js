@@ -1,6 +1,7 @@
 /**
  * Google Sheets Integration & High-Speed Exporter for Briants
- * Formats 15 enriched columns for Raw Keyword Sheet (1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4)
+ * Formats 16 enriched columns (including Category & Micro-Topic Sub-Category)
+ * Target Raw Sheet ID: 1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4
  * Strict Export Filter: EXCLUDES unclassified/ignored keywords from final export!
  */
 
@@ -8,37 +9,49 @@ window.GoogleSheetsBridge = (function () {
   'use strict';
 
   /**
-   * Filter out unclassified keywords for strict export.
+   * Helper to fetch the current Mindmap tree and map keywords to assigned Category & Micro-Topic.
    */
-  function filterCategorizedOnly(classifiedItems) {
-    if (!window.SubClusterEngine) return classifiedItems;
+  function getKeywordCategoryMapping(classifiedItems) {
+    if (!window.SubClusterEngine) return new Map();
 
     const currentFilter = window.currentMindmapFilter || 'chainsaw';
     const tree = window.SubClusterEngine.buildTopicTree(classifiedItems, currentFilter);
 
-    // Map kw -> assigned branch
-    const kwBranchMap = new Map();
+    const kwMap = new Map();
     (tree.branches || []).forEach(b => {
       b.nodes.forEach(n => {
-        kwBranchMap.set(n.Keyword.toLowerCase().trim(), b.id);
+        kwMap.set(n.Keyword.toLowerCase().trim(), {
+          branchId: b.id,
+          categoryLabel: b.label,
+          microTopicLabel: n.microTopicLabel || 'General'
+        });
       });
     });
 
+    return kwMap;
+  }
+
+  /**
+   * Filter out unclassified keywords for strict export.
+   */
+  function filterCategorizedOnly(classifiedItems) {
+    const kwMap = getKeywordCategoryMapping(classifiedItems);
     return classifiedItems.filter(item => {
       const kw = (item.Keyword || '').toLowerCase().trim();
-      const branchId = kwBranchMap.get(kw);
-      return branchId && branchId !== 'unclassified';
+      const info = kwMap.get(kw);
+      return info && info.branchId !== 'unclassified';
     });
   }
 
   /**
-   * Build 15-column Enriched TSV data string for cell A2 clipboard pasting.
+   * Build 16-column Enriched TSV data string for cell A2 clipboard pasting.
    */
   function buildMasterEnrichedTSV(classifiedItems, clusters) {
     const validItems = filterCategorizedOnly(classifiedItems);
+    const kwMap = getKeywordCategoryMapping(classifiedItems);
     const dateStr = new Date().toISOString().split('T')[0];
 
-    // 15 Master Headers
+    // 16 Master Headers (Including Category & Micro-Topic Sub-Category)
     const headers = [
       'Keyword',
       'Search Volume',
@@ -49,7 +62,8 @@ window.GoogleSheetsBridge = (function () {
       'Search Intent',
       'Funnel Stage',
       'Priority',
-      'Seed Cluster',
+      'Assigned Category',
+      'Sub-Category (Micro-Topic)',
       'Suggested Headline',
       'Target URL',
       'Import Date',
@@ -68,11 +82,14 @@ window.GoogleSheetsBridge = (function () {
       const funnel = item.FunnelStage || 'Awareness';
       const priority = item.Priority || 'Medium';
 
+      const catInfo = kwMap.get(kw.toLowerCase().trim()) || { categoryLabel: 'General', microTopicLabel: 'General' };
+      const category = catInfo.categoryLabel;
+      const subCategory = catInfo.microTopicLabel;
+
       const clusterObj = (clusters || []).find(c =>
         (c.keywords || []).some(k => k.Keyword.toLowerCase() === kw.toLowerCase())
       );
 
-      const clusterTitle = clusterObj ? clusterObj.headTerm : kw.split(' ')[0];
       const headline = clusterObj ? clusterObj.proposedTitle : `The Complete Guide to ${kw} | Briants Advice`;
       const url = `/products/${dept.toLowerCase().replace(/[^a-z0-9]/g, '-')}/${kw.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
 
@@ -86,7 +103,8 @@ window.GoogleSheetsBridge = (function () {
         intent,
         funnel,
         priority,
-        clusterTitle,
+        category,
+        subCategory,
         headline,
         url,
         dateStr,
@@ -99,10 +117,11 @@ window.GoogleSheetsBridge = (function () {
   }
 
   /**
-   * Build 15-column Enriched 2D Array for Webhook setValues() single batch push.
+   * Build 16-column Enriched 2D Array for Webhook setValues() single batch push.
    */
   function getMasterEnrichedRowsArray(classifiedItems, clusters) {
     const validItems = filterCategorizedOnly(classifiedItems);
+    const kwMap = getKeywordCategoryMapping(classifiedItems);
     const dateStr = new Date().toISOString().split('T')[0];
 
     return validItems.map(item => {
@@ -116,11 +135,14 @@ window.GoogleSheetsBridge = (function () {
       const funnel = item.FunnelStage || 'Awareness';
       const priority = item.Priority || 'Medium';
 
+      const catInfo = kwMap.get(kw.toLowerCase().trim()) || { categoryLabel: 'General', microTopicLabel: 'General' };
+      const category = catInfo.categoryLabel;
+      const subCategory = catInfo.microTopicLabel;
+
       const clusterObj = (clusters || []).find(c =>
         (c.keywords || []).some(k => k.Keyword.toLowerCase() === kw.toLowerCase())
       );
 
-      const clusterTitle = clusterObj ? clusterObj.headTerm : kw.split(' ')[0];
       const headline = clusterObj ? clusterObj.proposedTitle : `Briants ${kw} Guide`;
       const url = `/products/${kw.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
 
@@ -134,7 +156,8 @@ window.GoogleSheetsBridge = (function () {
         intent,
         funnel,
         priority,
-        clusterTitle,
+        category,
+        subCategory,
         headline,
         url,
         dateStr,
@@ -197,7 +220,7 @@ window.GoogleSheetsBridge = (function () {
 
   function getGoogleAppsScriptTemplate() {
     return `/**
- * Briants High-Speed Single-Call Batch Receiver
+ * Briants High-Speed Single-Call Batch Receiver (16 Columns)
  */
 function doPost(e) {
   try {
