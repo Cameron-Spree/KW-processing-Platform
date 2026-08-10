@@ -1,5 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO-to-Content Pipeline
+ * High-Speed Batch Engine
  */
 
 (function () {
@@ -18,10 +19,9 @@
       month: 'all'
     },
     webhooks: {
-      sheet1: '',
-      sheet2: '',
-      sheet3: ''
+      masterUrl: ''
     },
+    executionTimeMs: 0,
     activeBriefCluster: null
   };
 
@@ -33,7 +33,7 @@
     initEventListeners();
     loadStateFromStorage();
 
-    // If no state, auto-load sample dataset
+    // If no state, auto-load master dataset
     if (state.classifiedItems.length === 0) {
       loadSampleDataset();
     } else {
@@ -47,7 +47,7 @@
       metricTotalKw: document.getElementById('metric-total-kw'),
       metricTotalVol: document.getElementById('metric-total-vol'),
       metricClusters: document.getElementById('metric-clusters'),
-      metricMonth1: document.getElementById('metric-month1'),
+      metricSpeed: document.getElementById('metric-speed'),
       btnThemeToggle: document.getElementById('btn-theme-toggle'),
 
       // Navigation
@@ -75,22 +75,11 @@
       kanbanContainer: document.getElementById('kanban-container'),
       selectCalendarMonthFilter: document.getElementById('calendar-month-filter'),
 
-      // Tab 5: Exporters & Webhook Push
-      btnCopySheet1: document.getElementById('btn-copy-sheet1'),
-      urlSheet1: document.getElementById('url-sheet1'),
-      btnPushSheet1: document.getElementById('btn-push-sheet1'),
-      btnCsvSheet1: document.getElementById('btn-csv-sheet1'),
-
-      btnCopySheet2: document.getElementById('btn-copy-sheet2'),
-      urlSheet2: document.getElementById('url-sheet2'),
-      btnPushSheet2: document.getElementById('btn-push-sheet2'),
-      btnCsvSheet2: document.getElementById('btn-csv-sheet2'),
-
-      btnCopySheet3: document.getElementById('btn-copy-sheet3'),
-      urlSheet3: document.getElementById('url-sheet3'),
-      btnPushSheet3: document.getElementById('btn-push-sheet3'),
-      btnCsvSheet3: document.getElementById('btn-csv-sheet3'),
-
+      // Tab 5: Master Raw Sheet Sync
+      btnCopyMaster: document.getElementById('btn-copy-master'),
+      urlMaster: document.getElementById('url-master'),
+      btnPushMaster: document.getElementById('btn-push-master'),
+      btnDownloadMasterCsv: document.getElementById('btn-download-master-csv'),
       btnAppsScriptModal: document.getElementById('btn-apps-script-modal'),
 
       // Modals
@@ -204,104 +193,42 @@
       });
     }
 
-    // 7. Auto-Save Webhook URLs as User Types
-    if (dom.urlSheet1) {
-      dom.urlSheet1.addEventListener('input', (e) => {
-        state.webhooks.sheet1 = e.target.value.trim();
+    // 7. Auto-Save Master Webhook URL
+    if (dom.urlMaster) {
+      dom.urlMaster.addEventListener('input', (e) => {
+        state.webhooks.masterUrl = e.target.value.trim();
         saveStateToStorage();
       });
     }
 
-    if (dom.urlSheet2) {
-      dom.urlSheet2.addEventListener('input', (e) => {
-        state.webhooks.sheet2 = e.target.value.trim();
-        saveStateToStorage();
-      });
-    }
-
-    if (dom.urlSheet3) {
-      dom.urlSheet3.addEventListener('input', (e) => {
-        state.webhooks.sheet3 = e.target.value.trim();
-        saveStateToStorage();
-      });
-    }
-
-    // Exporter & Webhook Push Listeners
-    if (dom.btnCopySheet1) {
-      dom.btnCopySheet1.addEventListener('click', async () => {
-        const tsv = window.GoogleSheetsBridge.buildSheet1TSV(state.clusters);
+    // Master Raw Sheet Actions
+    if (dom.btnCopyMaster) {
+      dom.btnCopyMaster.addEventListener('click', async () => {
+        const tsv = window.GoogleSheetsBridge.buildMasterEnrichedTSV(state.classifiedItems, state.clusters);
         const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
-        if (res.success) showToast('Copied ready for Sheet 1 (Editorial Calendar)! Paste with Ctrl+V', 'success');
+        if (res.success) showToast(`Copied ${state.classifiedItems.length} enriched keywords! Paste into cell A2 with Ctrl+V`, 'success');
       });
     }
-    if (dom.btnPushSheet1) {
-      dom.btnPushSheet1.addEventListener('click', async () => {
-        const url = dom.urlSheet1 ? dom.urlSheet1.value.trim() : '';
-        const rows = window.GoogleSheetsBridge.getSheet1RowsArray(state.clusters);
+
+    if (dom.btnPushMaster) {
+      dom.btnPushMaster.addEventListener('click', async () => {
+        const url = dom.urlMaster ? dom.urlMaster.value.trim() : '';
+        const rows = window.GoogleSheetsBridge.getMasterEnrichedRowsArray(state.classifiedItems, state.clusters);
         try {
-          await window.GoogleSheetsBridge.pushToWebhook(url, 'Sheet 1', null, rows);
-          showToast('Data pushed live to Sheet 1!', 'success');
+          const startTime = performance.now();
+          await window.GoogleSheetsBridge.pushToWebhook(url, 'Raw Data Sheet', null, rows);
+          const pushTimeMs = Math.round(performance.now() - startTime);
+          showToast(`Successfully pushed ${rows.length} enriched keywords in ${pushTimeMs}ms!`, 'success');
         } catch (err) {
-          showToast(err.message || 'Webhook push failed.', 'error');
+          showToast(err.message || 'Batch push failed.', 'error');
         }
       });
     }
-    if (dom.btnCsvSheet1) {
-      dom.btnCsvSheet1.addEventListener('click', () => {
-        const tsv = window.GoogleSheetsBridge.buildSheet1TSV(state.clusters);
-        window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Sheet1_Editorial_Calendar.csv');
-      });
-    }
 
-    if (dom.btnCopySheet2) {
-      dom.btnCopySheet2.addEventListener('click', async () => {
-        const tsv = window.GoogleSheetsBridge.buildSheet2TSV(state.classifiedItems, state.clusters);
-        const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
-        if (res.success) showToast('Copied ready for Sheet 2 (Master Keyword Mapping)! Paste with Ctrl+V', 'success');
-      });
-    }
-    if (dom.btnPushSheet2) {
-      dom.btnPushSheet2.addEventListener('click', async () => {
-        const url = dom.urlSheet2 ? dom.urlSheet2.value.trim() : '';
-        const rows = window.GoogleSheetsBridge.getSheet2RowsArray(state.classifiedItems, state.clusters);
-        try {
-          await window.GoogleSheetsBridge.pushToWebhook(url, 'Sheet 2', null, rows);
-          showToast('Data pushed live to Sheet 2!', 'success');
-        } catch (err) {
-          showToast(err.message || 'Webhook push failed.', 'error');
-        }
-      });
-    }
-    if (dom.btnCsvSheet2) {
-      dom.btnCsvSheet2.addEventListener('click', () => {
-        const tsv = window.GoogleSheetsBridge.buildSheet2TSV(state.classifiedItems, state.clusters);
-        window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Sheet2_Master_Keywords.csv');
-      });
-    }
-
-    if (dom.btnCopySheet3) {
-      dom.btnCopySheet3.addEventListener('click', async () => {
-        const tsv = window.GoogleSheetsBridge.buildSheet3TSV(state.rawItems);
-        const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
-        if (res.success) showToast('Copied ready for Sheet 3 (Raw Import & Staging)! Paste with Ctrl+V', 'success');
-      });
-    }
-    if (dom.btnPushSheet3) {
-      dom.btnPushSheet3.addEventListener('click', async () => {
-        const url = dom.urlSheet3 ? dom.urlSheet3.value.trim() : '';
-        const rows = window.GoogleSheetsBridge.getSheet3RowsArray(state.rawItems);
-        try {
-          await window.GoogleSheetsBridge.pushToWebhook(url, 'Sheet 3', null, rows);
-          showToast('Data pushed live to Sheet 3!', 'success');
-        } catch (err) {
-          showToast(err.message || 'Webhook push failed.', 'error');
-        }
-      });
-    }
-    if (dom.btnCsvSheet3) {
-      dom.btnCsvSheet3.addEventListener('click', () => {
-        const tsv = window.GoogleSheetsBridge.buildSheet3TSV(state.rawItems);
-        window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Sheet3_Raw_Staging.csv');
+    if (dom.btnDownloadMasterCsv) {
+      dom.btnDownloadMasterCsv.addEventListener('click', () => {
+        const tsv = window.GoogleSheetsBridge.buildMasterEnrichedTSV(state.classifiedItems, state.clusters);
+        window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Enriched_Raw_Keywords.csv');
       });
     }
 
@@ -351,13 +278,12 @@
       }
     });
 
-    // Refresh specific view logic
     if (tabId === 'taxonomy') renderTaxonomyTable();
     if (tabId === 'clusters') renderClusterGrid();
     if (tabId === 'calendar') renderKanbanBoard();
   }
 
-  /* --- Data Loading & Ingestion --- */
+  /* --- Data Ingestion & Enrichment --- */
   function handleFileImport(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -369,10 +295,11 @@
         return;
       }
 
+      state.executionTimeMs = res.summary.executionTimeMs || 0;
       state.rawItems = res.items;
       runClassificationAndClustering();
       renderImportSummary(res.summary);
-      showToast(`Successfully imported ${res.items.length} keywords!`, 'success');
+      showToast(`Imported & enriched ${res.items.length} keywords in ${state.executionTimeMs}ms!`, 'success');
       saveStateToStorage();
     };
     reader.readAsText(file);
@@ -380,20 +307,24 @@
 
   function loadSampleDataset() {
     if (!window.BriantsSampleData) return;
-    state.rawItems = window.BriantsSampleData.map(item => ({
+    const startTime = performance.now();
+    state.rawItems = window.BriantsSampleData.map((item, idx) => ({
       ...item,
-      id: 'kw_' + Math.random().toString(36).substr(2, 9),
+      id: 'kw_' + idx,
       'Search Volume': window.CSVCleaner ? parseVolumeHelper(item['Search Volume']) : 1000,
       CPC: window.CSVCleaner ? parseCpcHelper(item.CPC) : 1.50
     }));
 
     runClassificationAndClustering();
+    state.executionTimeMs = Math.round(performance.now() - startTime);
+
     renderImportSummary({
       totalRows: state.rawItems.length,
       validRows: state.rawItems.length,
-      deduplicated: 0
+      deduplicated: 0,
+      executionTimeMs: state.executionTimeMs
     });
-    showToast('Briants 3-Sheet dataset loaded!', 'success');
+    showToast(`Briants master dataset enriched in ${state.executionTimeMs}ms!`, 'success');
     saveStateToStorage();
   }
 
@@ -423,12 +354,11 @@
     const totalKw = state.classifiedItems.length;
     const totalVol = state.classifiedItems.reduce((sum, item) => sum + (item['Search Volume'] || 0), 0);
     const totalClusters = state.clusters.length;
-    const month1Count = state.clusters.filter(c => (c.assignedMonth || 'Month 1') === 'Month 1').length;
 
     if (dom.metricTotalKw) dom.metricTotalKw.textContent = totalKw.toLocaleString();
     if (dom.metricTotalVol) dom.metricTotalVol.textContent = totalVol.toLocaleString();
     if (dom.metricClusters) dom.metricClusters.textContent = totalClusters;
-    if (dom.metricMonth1) dom.metricMonth1.textContent = month1Count;
+    if (dom.metricSpeed) dom.metricSpeed.textContent = `${state.executionTimeMs} ms`;
   }
 
   function renderImportSummary(summary) {
@@ -448,14 +378,14 @@
           <div class="stat-box-label">Duplicates Merged</div>
         </div>
         <div class="stat-box amber">
-          <div class="stat-box-num">${state.clusters.length}</div>
-          <div class="stat-box-label">Semantic Clusters</div>
+          <div class="stat-box-num">${summary.executionTimeMs || 0} ms</div>
+          <div class="stat-box-label">Enrichment Speed</div>
         </div>
       </div>
     `;
   }
 
-  /* --- Tab 2: Taxonomy Table --- */
+  /* --- Tab 2: Enriched Keyword Table --- */
   function renderTaxonomyTable() {
     if (!dom.taxonomyTableBody) return;
 
@@ -473,7 +403,7 @@
     if (filtered.length === 0) {
       dom.taxonomyTableBody.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+          <td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">
             No keywords match the active filter criteria.
           </td>
         </tr>
@@ -484,6 +414,7 @@
     const rowsHtml = filtered.slice(0, 150).map((item, idx) => {
       const deptClass = 'dept-' + (item.Department || '').toLowerCase().replace(/[^a-z]/g, '');
       const intentClass = 'intent-' + (item.Intent || 'informational').toLowerCase().split('/')[0];
+      const priorityClass = item.Priority === 'High' ? 'color:#dc2626; font-weight:700;' : (item.Priority === 'Medium' ? 'color:#d97706;' : 'color:var(--text-muted);');
 
       return `
         <tr>
@@ -491,6 +422,8 @@
           <td><strong style="color:var(--text-main);">${escapeHtml(item.Keyword)}</strong></td>
           <td><span class="badge-dept ${deptClass}">${item.Department}</span></td>
           <td><span class="badge-intent ${intentClass}">${item.Intent}</span></td>
+          <td><span style="font-size:0.78rem; color:var(--text-muted);">${item.FunnelStage || 'Awareness'}</span></td>
+          <td><span style="${priorityClass}">${item.Priority || 'Medium'}</span></td>
           <td><strong>${(item['Search Volume'] || 0).toLocaleString()}</strong></td>
           <td>£${(item.CPC || 0).toFixed(2)}</td>
         </tr>
@@ -543,7 +476,7 @@
               </div>
               <div class="cluster-metric-item">
                 <span>Priority</span>
-                <span style="color:var(--accent-amber);">${c.priorityScore}</span>
+                <span style="color:#d97706;">${c.priorityScore}</span>
               </div>
             </div>
             <div class="cluster-kw-list">
@@ -688,9 +621,7 @@
         }
         if (parsed.webhooks) {
           state.webhooks = parsed.webhooks;
-          if (dom.urlSheet1 && state.webhooks.sheet1) dom.urlSheet1.value = state.webhooks.sheet1;
-          if (dom.urlSheet2 && state.webhooks.sheet2) dom.urlSheet2.value = state.webhooks.sheet2;
-          if (dom.urlSheet3 && state.webhooks.sheet3) dom.urlSheet3.value = state.webhooks.sheet3;
+          if (dom.urlMaster && state.webhooks.masterUrl) dom.urlMaster.value = state.webhooks.masterUrl;
         }
       }
     } catch (e) {}

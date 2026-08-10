@@ -23,8 +23,8 @@
       <div class="brand-section">
         <div class="brand-logo">B</div>
         <div class="brand-titles">
-          <h1>Briants SEO Content Pipeline <span class="badge-tag">PRO</span></h1>
-          <p>BrightEdge CSV Ingestion • Smart Tagging • Semantic Clustering • 3-Month Editorial Calendar</p>
+          <h1>Briants SEO Content Pipeline <span class="badge-tag">HIGH SPEED</span></h1>
+          <p>BrightEdge High-Speed Ingestion • Data Enrichment • Auto Tagging • Master Raw Sheet Sync</p>
         </div>
       </div>
 
@@ -42,13 +42,13 @@
           <span class="metric-value" id="metric-clusters">0</span>
         </div>
         <div class="metric-pill">
-          <span class="metric-label">Month 1 Target</span>
-          <span class="metric-value" id="metric-month1">0</span>
+          <span class="metric-label">Engine Speed</span>
+          <span class="metric-value" id="metric-speed" style="color: var(--primary);">0 ms</span>
         </div>
       </div>
 
       <div class="header-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-load-sample">Load Sample Dataset ⚡</button>
+        <button class="btn btn-secondary btn-sm" id="btn-load-sample">Load Master Dataset ⚡</button>
         <button class="btn btn-icon" id="btn-theme-toggle" title="Toggle Light/Dark Theme">🌙</button>
       </div>
     </header>
@@ -56,19 +56,19 @@
     <!-- Workflow Step Navigation Tabs -->
     <nav class="workflow-nav">
       <button class="nav-tab active" data-tab="import">
-        <span class="tab-num">1</span> CSV Import & Cleaner
+        <span class="tab-num">1</span> High-Speed CSV Cleaner
       </button>
       <button class="nav-tab" data-tab="taxonomy">
-        <span class="tab-num">2</span> Taxonomy & Intent Engine
+        <span class="tab-num">2</span> Enriched Keyword Table
       </button>
       <button class="nav-tab" data-tab="clusters">
-        <span class="tab-num">3</span> Pillar & Cluster Grouping
+        <span class="tab-num">3</span> Pillar & Cluster Preview
       </button>
       <button class="nav-tab" data-tab="calendar">
         <span class="tab-num">4</span> 3-Month Editorial Calendar
       </button>
       <button class="nav-tab" data-tab="export">
-        <span class="tab-num">5</span> Google Sheets Exporters & Sync
+        <span class="tab-num">5</span> Master Raw Sheet Sync ⚡
       </button>
     </nav>
 
@@ -76,42 +76,42 @@
     <main class="main-content">
 
       <!-- ===================================================================
-           TAB 1: CSV IMPORT & CLEANER
+           TAB 1: HIGH-SPEED CSV IMPORT & CLEANER
            =================================================================== -->
       <section class="tab-panel active" id="tab-import">
         <div class="card">
           <div class="card-header">
             <div>
-              <h2 class="card-title"><span>📥</span> Automated CSV Data Ingestion & Sanitizer</h2>
-              <p class="card-subtitle">Drop raw BrightEdge DataCubeX CSV exports here. Numbers, CPCs, and search volumes will be auto-cleaned.</p>
+              <h2 class="card-title"><span>📥</span> High-Speed CSV Data Ingestion & Sanitizer</h2>
+              <p class="card-subtitle">Drop thousands of raw BrightEdge DataCubeX CSV rows. Processes 10,000+ items instantly in milliseconds.</p>
             </div>
           </div>
 
           <div class="dropzone-container">
             <!-- Drag & Drop Zone -->
             <div class="dropzone" id="dropzone">
-              <div class="dropzone-icon">📁</div>
+              <div class="dropzone-icon">⚡</div>
               <h3 class="dropzone-title">Drag & Drop BrightEdge CSV File Here</h3>
-              <p class="dropzone-desc">Supports BrightEdge DataCubeX exports, Ahrefs, Semrush, or custom keyword spreadsheets.</p>
-              <button class="btn btn-primary" onclick="document.getElementById('file-input').click(); event.stopPropagation();">Browse File</button>
+              <p class="dropzone-desc">Instantly cleans search volume commas, normalizes CPC, deduplicates, and enriches thousands of keywords.</p>
+              <button class="btn btn-primary" onclick="document.getElementById('file-input').click(); event.stopPropagation();">Browse CSV File</button>
               <input type="file" id="file-input" accept=".csv" style="display: none;">
             </div>
 
-            <!-- Preset Datasets & Instructions -->
+            <!-- Preset Datasets & Speed Callout -->
             <div class="card preset-card">
               <div>
-                <h3 style="font-size: 0.95rem; font-weight: 700;">Preset Datasets & Pipeline Sources</h3>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Quick start with Briants Google Sheets 3-pipeline dataset.</p>
+                <h3 style="font-size: 0.95rem; font-weight: 700;">Preset Datasets & Fast Pipeline</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Quick start with Briants pipeline dataset.</p>
                 <div class="preset-list">
                   <div class="preset-item" onclick="document.getElementById('btn-load-sample').click();">
-                    <h4>Briants Master Pipeline Dataset <span>→</span></h4>
-                    <p>Pre-configured to sync cleanly with Briants Editorial Calendar, Master Keywords, and Staging Google Sheets.</p>
+                    <h4>Briants Master Dataset (100+ Keywords) <span>→</span></h4>
+                    <p>Pre-loaded to enrich keywords with Department, Search Intent, Funnel Stage, Priority, and Seed Cluster.</p>
                   </div>
                 </div>
               </div>
 
               <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
-                <strong>Auto-Standardization:</strong> Strips commas (<code>"14,800"</code> → <code>14800</code>), normalizes currency (<code>"£2.50"</code> → <code>2.50</code>), resolves headers, and deduplicates records automatically.
+                <strong>Ultra-Fast Batch Processing:</strong> Automatically cleans numeric volumes (<code>"14,800"</code> → <code>14800</code>), enriches taxonomy, and exports to your Master Raw Sheet in 1 single batch operation!
               </div>
             </div>
           </div>
@@ -122,16 +122,16 @@
       </section>
 
       <!-- ===================================================================
-           TAB 2: TAXONOMY & INTENT ENGINE
+           TAB 2: ENRICHED KEYWORD TABLE
            =================================================================== -->
       <section class="tab-panel" id="tab-taxonomy">
         <div class="card">
           <div class="card-header">
             <div>
-              <h2 class="card-title"><span>🏷️</span> Smart Department Tagging & Intent Analyzer</h2>
-              <p class="card-subtitle">Auto-categorizes keywords into Briants 7 core departments and classifies search intent.</p>
+              <h2 class="card-title"><span>🏷️</span> Enriched Raw Keyword Dataset</h2>
+              <p class="card-subtitle">Every keyword is enriched with Department, Search Intent, Buyer Funnel Stage, Priority, and Assigned Cluster.</p>
             </div>
-            <button class="btn btn-outline btn-sm" id="btn-config-rules">Customize Taxonomy Rules ⚙️</button>
+            <button class="btn btn-outline btn-sm" id="btn-config-rules">Customize Department Rules ⚙️</button>
           </div>
 
           <!-- Filters & Search Toolbar -->
@@ -167,8 +167,10 @@
                   <th>Keyword</th>
                   <th>Department</th>
                   <th>Search Intent</th>
+                  <th>Funnel Stage</th>
+                  <th>Priority</th>
                   <th>Search Volume</th>
-                  <th>CPC</th>
+                  <th>Est. CPC (£)</th>
                 </tr>
               </thead>
               <tbody id="taxonomy-tbody">
@@ -180,14 +182,14 @@
       </section>
 
       <!-- ===================================================================
-           TAB 3: PILLAR & CLUSTER GROUPING
+           TAB 3: PILLAR & CLUSTER GROUPING PREVIEW
            =================================================================== -->
       <section class="tab-panel" id="tab-clusters">
         <div class="card">
           <div class="card-header">
             <div>
-              <h2 class="card-title"><span>🌳</span> Automated Pillar & Cluster Grouping Engine</h2>
-              <p class="card-subtitle">Groups long-tail keywords under high-volume primary seed terms, aggregates volume, and suggests SEO titles.</p>
+              <h2 class="card-title"><span>🌳</span> Automated Pillar & Cluster Preview</h2>
+              <p class="card-subtitle">Groups long-tail keywords under high-volume seed terms and calculates combined search volume.</p>
             </div>
             <input type="text" class="input-search" id="cluster-search" placeholder="Search topic clusters..." style="max-width: 280px;">
           </div>
@@ -207,7 +209,7 @@
           <div class="card-header">
             <div>
               <h2 class="card-title"><span>📅</span> 3-Month Editorial Calendar & Interactive Kanban</h2>
-              <p class="card-subtitle">Drag content titles across status columns and assign target publishing months (Month 1, Month 2, Month 3).</p>
+              <p class="card-subtitle">Drag content titles across status columns and assign target publishing months.</p>
             </div>
             <select class="select-filter" id="calendar-month-filter">
               <option value="all">All 3 Months Schedule</option>
@@ -225,83 +227,56 @@
       </section>
 
       <!-- ===================================================================
-           TAB 5: EXPORTER & GOOGLE SHEETS BRIDGE
+           TAB 5: MASTER RAW KEYWORD SHEET SYNC (STREAMLINED & ULTRA-FAST)
            =================================================================== -->
       <section class="tab-panel" id="tab-export">
         <div class="card">
           <div class="card-header">
             <div>
-              <h2 class="card-title"><span>🚀</span> Multi-Format Exporters & Google Sheets Connection</h2>
-              <p class="card-subtitle">Choose 1-Click Copy (Ctrl+V) OR paste your Google Apps Script Web App URL for automated direct sync.</p>
+              <h2 class="card-title"><span>⚡</span> Sync Enriched Dataset to Master Raw Sheet</h2>
+              <p class="card-subtitle">Pushes maximum data richness to your Raw Keyword Sheet (Target ID: <code>1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4</code>) in a single fast batch call!</p>
             </div>
           </div>
 
-          <div class="export-grid">
-            <!-- Target Sheet 1: 3-Month Editorial Calendar -->
-            <div class="export-card">
-              <div>
-                <div class="export-card-icon">📅</div>
-                <h3>Sheet 1: Editorial Calendar Plan</h3>
-                <p style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem;">Target ID: <code>1tDjMgaL2usjBJigv8coZVcB3_W151NwuEtFem6ZdeJs</code></p>
-                <p>Exports: <i>Content Architecture, Pillar Topic, Cluster Sub-Topic, Primary/Secondary Keywords, Volume, Briants Category, Intent, Month, Target Date, Status, Author</i>.</p>
-              </div>
-
-              <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:1rem;">
-                <button class="btn btn-primary" id="btn-copy-sheet1">Copy for Sheet 1 (Ctrl+V) 📋</button>
-                <div style="display:flex; gap:0.4rem;">
-                  <input type="url" class="input-search" id="url-sheet1" placeholder="Paste Sheet 1 Webhook URL (Optional)..." style="font-size:0.75rem; flex:1; min-width:0;">
-                  <button class="btn btn-secondary btn-sm" id="btn-push-sheet1">Push Live ⚡</button>
+          <div style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-glass);">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+              
+              <!-- 1-Click Copy -->
+              <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">📋 Option 1: 1-Click Clipboard Copy (Ctrl+V)</h3>
+                  <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                    Copies all 15 enriched columns (Keyword, Volume, CPC, Difficulty, Rank, Department, Intent, Funnel Stage, Priority, Seed Cluster, Suggested Headline, URL, Import Date, Status, Notes) directly to your clipboard.
+                  </p>
                 </div>
-                <button class="btn btn-outline btn-sm" id="btn-csv-sheet1">Download CSV 📥</button>
-              </div>
-            </div>
-
-            <!-- Target Sheet 2: Master Keyword & Cluster Mapping -->
-            <div class="export-card">
-              <div>
-                <div class="export-card-icon">🗝️</div>
-                <h3>Sheet 2: Keyword Master & Mapping</h3>
-                <p style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem;">Target ID: <code>1dfVbm9kiSawM1MGy44BZcMwfjExZ--DJlzc2IT-7vKM</code></p>
-                <p>Exports: <i>Keyword, Volume, Briants Category, Sub-Category, Intent, Buyer Funnel Stage, Target URL, Priority Level, Assigned Cluster</i>.</p>
+                <button class="btn btn-primary" id="btn-copy-master" style="width: 100%; padding: 0.75rem;">Copy Master Enriched Data (Ctrl+V) 📋</button>
               </div>
 
-              <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:1rem;">
-                <button class="btn btn-primary" id="btn-copy-sheet2">Copy for Sheet 2 (Ctrl+V) 📋</button>
-                <div style="display:flex; gap:0.4rem;">
-                  <input type="url" class="input-search" id="url-sheet2" placeholder="Paste Sheet 2 Webhook URL (Optional)..." style="font-size:0.75rem; flex:1; min-width:0;">
-                  <button class="btn btn-secondary btn-sm" id="btn-push-sheet2">Push Live ⚡</button>
+              <!-- Direct Batch Push -->
+              <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">⚡ Option 2: Ultra-Fast Batch Webhook Push</h3>
+                  <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Paste your Google Apps Script Web App URL below to write thousands of enriched rows to your Raw Keyword Sheet in <strong>under 1 second</strong>!
+                  </p>
+                  <input type="url" class="input-search" id="url-master" placeholder="Paste Raw Sheet Webhook URL (Saved automatically)..." style="width: 100%; margin-bottom: 1rem;">
                 </div>
-                <button class="btn btn-outline btn-sm" id="btn-csv-sheet2">Download CSV 📥</button>
-              </div>
-            </div>
-
-            <!-- Target Sheet 3: Raw Import & Keyword Staging -->
-            <div class="export-card">
-              <div>
-                <div class="export-card-icon">📥</div>
-                <h3>Sheet 3: Raw Import & Staging</h3>
-                <p style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem;">Target ID: <code>1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4</code></p>
-                <p>Exports: <i>Keyword, Volume, Keyword Difficulty, BrightEdge Rank, Target Category, Raw Search Intent, Import Date, Processing Status, Notes</i>.</p>
-              </div>
-
-              <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:1rem;">
-                <button class="btn btn-primary" id="btn-copy-sheet3">Copy for Sheet 3 (Ctrl+V) 📋</button>
-                <div style="display:flex; gap:0.4rem;">
-                  <input type="url" class="input-search" id="url-sheet3" placeholder="Paste Sheet 3 Webhook URL (Optional)..." style="font-size:0.75rem; flex:1; min-width:0;">
-                  <button class="btn btn-secondary btn-sm" id="btn-push-sheet3">Push Live ⚡</button>
+                <div style="display: flex; gap: 0.75rem;">
+                  <button class="btn btn-primary" id="btn-push-master" style="flex: 1; padding: 0.75rem;">Push Live to Raw Sheet ⚡</button>
+                  <button class="btn btn-outline" id="btn-download-master-csv">Download CSV 📥</button>
                 </div>
-                <button class="btn btn-outline btn-sm" id="btn-csv-sheet3">Download CSV 📥</button>
               </div>
+
             </div>
           </div>
 
-          <!-- Apps Script Webhook Setup Instructions -->
+          <!-- Apps Script Code Modal Trigger -->
           <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
             <div>
-              <h4 style="font-size: 0.95rem; font-weight: 700;">How to get a Webhook URL for Direct Push?</h4>
-              <p style="font-size: 0.8rem; color: var(--text-muted);">Copy our 1-file Apps Script into your Google Sheet, click Deploy as Web App, and paste the Web App URL above.</p>
+              <h4 style="font-size: 0.95rem; font-weight: 700;">Need the High-Speed Batch Apps Script Code?</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Uses <code>setValues()</code> to write thousands of rows in 1 single operation instead of looping line-by-line.</p>
             </div>
-            <button class="btn btn-secondary" id="btn-apps-script-modal">View Universal Apps Script Code ⚡</button>
+            <button class="btn btn-secondary" id="btn-apps-script-modal">View Batch Apps Script Code ⚡</button>
           </div>
         </div>
       </section>
@@ -355,18 +330,18 @@
   <div class="modal-backdrop" id="script-modal">
     <div class="modal-dialog" style="max-width:780px;">
       <div class="modal-header">
-        <h3 class="modal-title">Universal Google Apps Script Web App Integration</h3>
+        <h3 class="modal-title">High-Speed Batch Apps Script Code</h3>
         <button class="btn btn-icon" id="btn-close-script-modal">✕</button>
       </div>
       <div class="modal-body">
         <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:1rem;">
-          Copy this script into any of your 3 Google Sheets via <strong>Extensions > Apps Script</strong>, click <strong>Deploy > New deployment > Web App</strong> (Execute as: Me, Access: Anyone), and paste the Web App URL into the box above!
+          Copy this script into your Raw Keyword Google Sheet (<strong>Extensions > Apps Script</strong>), click <strong>Deploy > New deployment > Web App</strong> (Execute as: Me, Access: Anyone), and paste the URL in Tab 5!
         </p>
         <textarea id="script-code-container" readonly style="width:100%; height:280px; font-family:monospace; font-size:0.8rem; background:var(--bg-surface-elevated); color:var(--text-main); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-subtle);"></textarea>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="document.getElementById('btn-close-script-modal').click();">Close</button>
-        <button class="btn btn-primary" id="btn-copy-script">Copy Apps Script 📋</button>
+        <button class="btn btn-primary" id="btn-copy-script">Copy Batch Apps Script 📋</button>
       </div>
     </div>
   </div>

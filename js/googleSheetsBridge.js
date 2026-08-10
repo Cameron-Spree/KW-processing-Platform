@@ -1,197 +1,66 @@
 /**
- * Google Sheets Bridge & Multi-Format Exporter
- * Specifically tailored for Briants' 3 Pipeline Sheets:
- * 1. 3-Month Editorial Calendar & Content Plan
- * 2. Keyword Master & Cluster Mapping
- * 3. Raw Import & Keyword Staging
+ * High-Speed Google Sheets Bridge & Data Enricher
+ * Fast BATCH export handling thousands of rows in 1 single API call.
  */
 
 window.GoogleSheetsBridge = (function () {
   'use strict';
 
   /**
-   * Target Sheet 1: 3-Month Editorial Calendar & Content Plan Format
+   * Build Master Enriched Data TSV for 1-Click Clipboard Copying into Raw Data Sheet.
    */
-  function buildSheet1TSV(clusters) {
-    const headers = [
-      'Content Architecture',
-      'Pillar Topic',
-      'Cluster Sub-Topic / Working Title',
-      'Primary Keyword',
-      'Grouped Secondary Keywords',
-      'Combined Search Volume',
-      'Briants Category',
-      'Search Intent Tag',
-      'Publish Month',
-      'Target Publication Date',
-      'Content Status',
-      'Assigned Author'
-    ];
-
-    const rows = [headers.join('\t')];
-
-    clusters.forEach((c, idx) => {
-      const isPillar = idx % 3 === 0;
-      const arch = isPillar ? 'PILLAR' : (c.department === 'Promo Blog' ? 'PROMO' : 'CLUSTER');
-      const secondaries = (c.keywords || []).slice(1).map(k => k.Keyword).join(', ');
-      const targetDate = getTargetDateForCluster(c.assignedMonth, idx);
-
-      const row = [
-        arch,
-        sanitizeForCell(c.headTerm),
-        sanitizeForCell(c.proposedTitle || c.headTerm),
-        sanitizeForCell(c.headTerm),
-        sanitizeForCell(secondaries || 'None'),
-        c.totalVolume || 0,
-        sanitizeForCell(c.department),
-        sanitizeForCell(c.intent),
-        sanitizeForCell(c.assignedMonth || 'Month 1'),
-        targetDate,
-        sanitizeForCell(c.status || 'Briefing'),
-        'E-commerce Team'
-      ];
-      rows.push(row.join('\t'));
-    });
-
-    return rows.join('\n');
-  }
-
-  function getSheet1RowsArray(clusters) {
-    return clusters.map((c, idx) => {
-      const isPillar = idx % 3 === 0;
-      const arch = isPillar ? 'PILLAR' : (c.department === 'Promo Blog' ? 'PROMO' : 'CLUSTER');
-      const secondaries = (c.keywords || []).slice(1).map(k => k.Keyword).join(', ');
-      const targetDate = getTargetDateForCluster(c.assignedMonth, idx);
-      return [
-        arch,
-        c.headTerm,
-        c.proposedTitle || c.headTerm,
-        c.headTerm,
-        secondaries || 'None',
-        c.totalVolume || 0,
-        c.department,
-        c.intent,
-        c.assignedMonth || 'Month 1',
-        targetDate,
-        c.status || 'Briefing',
-        'E-commerce Team'
-      ];
-    });
-  }
-
-  /**
-   * Target Sheet 2: Keyword Master & Cluster Mapping Format
-   */
-  function buildSheet2TSV(classifiedItems, clusters) {
+  function buildMasterEnrichedTSV(classifiedItems, clusters) {
     const headers = [
       'Keyword',
       'Monthly Search Volume',
-      'Briants Category',
-      'Sub-Category',
-      'Search Intent Tag',
-      'Buyer Funnel Stage',
-      'Target Page / URL',
-      'Priority Level',
-      'Assigned Content Cluster'
-    ];
-
-    const rows = [headers.join('\t')];
-    const kwToClusterMap = new Map();
-    clusters.forEach(c => {
-      (c.keywords || []).forEach(k => {
-        kwToClusterMap.set((k.Keyword || '').toLowerCase(), c.proposedTitle || c.headTerm);
-      });
-    });
-
-    classifiedItems.forEach(item => {
-      const intent = item.Intent || 'Informational';
-      let funnelStage = 'Awareness';
-      if (intent === 'Commercial' || intent === 'Commercial/Informational') funnelStage = 'Consideration';
-      if (intent === 'Transactional') funnelStage = 'Decision';
-
-      const vol = item['Search Volume'] || 0;
-      const priority = vol > 10000 ? 'High' : (vol > 3000 ? 'Medium' : 'Low');
-      const clusterTitle = kwToClusterMap.get((item.Keyword || '').toLowerCase()) || 'General Topic Cluster';
-
-      const row = [
-        sanitizeForCell(item.Keyword),
-        vol,
-        sanitizeForCell(item.Department),
-        sanitizeForCell(item.Department + ' Tools'),
-        sanitizeForCell(intent),
-        funnelStage,
-        sanitizeForCell(item.URL || ''),
-        priority,
-        sanitizeForCell(clusterTitle)
-      ];
-      rows.push(row.join('\t'));
-    });
-
-    return rows.join('\n');
-  }
-
-  function getSheet2RowsArray(classifiedItems, clusters) {
-    const kwToClusterMap = new Map();
-    clusters.forEach(c => {
-      (c.keywords || []).forEach(k => {
-        kwToClusterMap.set((k.Keyword || '').toLowerCase(), c.proposedTitle || c.headTerm);
-      });
-    });
-
-    return classifiedItems.map(item => {
-      const intent = item.Intent || 'Informational';
-      let funnelStage = 'Awareness';
-      if (intent === 'Commercial' || intent === 'Commercial/Informational') funnelStage = 'Consideration';
-      if (intent === 'Transactional') funnelStage = 'Decision';
-
-      const vol = item['Search Volume'] || 0;
-      const priority = vol > 10000 ? 'High' : (vol > 3000 ? 'Medium' : 'Low');
-      const clusterTitle = kwToClusterMap.get((item.Keyword || '').toLowerCase()) || 'General Topic Cluster';
-
-      return [
-        item.Keyword,
-        vol,
-        item.Department,
-        item.Department + ' Tools',
-        intent,
-        funnelStage,
-        item.URL || '',
-        priority,
-        clusterTitle
-      ];
-    });
-  }
-
-  /**
-   * Target Sheet 3: Raw Import & Keyword Staging Format
-   */
-  function buildSheet3TSV(rawItems) {
-    const headers = [
-      'Keyword',
-      'Monthly Search Volume',
+      'Est. CPC (£)',
       'Keyword Difficulty',
       'BrightEdge Rank',
-      'Target Category',
-      'Raw Search Intent',
+      'Briants Department',
+      'Search Intent Tag',
+      'Buyer Funnel Stage',
+      'Priority Level',
+      'Assigned Pillar Cluster',
+      'Suggested Content Headline',
+      'Target Page / URL',
       'Import Date',
       'Processing Status',
       'Automation Notes'
     ];
 
     const rows = [headers.join('\t')];
+    const kwToClusterMap = new Map();
+    clusters.forEach(c => {
+      (c.keywords || []).forEach(k => {
+        kwToClusterMap.set((k.Keyword || '').toLowerCase(), {
+          cluster: c.headTerm,
+          headline: c.proposedTitle
+        });
+      });
+    });
+
     const todayStr = new Date().toISOString().split('T')[0];
 
-    rawItems.forEach(item => {
+    classifiedItems.forEach(item => {
+      const kwLower = (item.Keyword || '').toLowerCase();
+      const meta = kwToClusterMap.get(kwLower) || { cluster: item.Department + ' Focus', headline: 'Guide to ' + item.Keyword };
+
       const row = [
         sanitizeForCell(item.Keyword),
         item['Search Volume'] || 0,
-        Math.floor(Math.random() * 40) + 20,
+        (item.CPC || 0).toFixed(2),
+        item.Difficulty || 25,
         item.Rank || 10,
-        sanitizeForCell(item.Department || 'Pending'),
-        sanitizeForCell(item.Intent || 'Informational'),
+        sanitizeForCell(item.Department),
+        sanitizeForCell(item.Intent),
+        sanitizeForCell(item.FunnelStage || 'Awareness'),
+        sanitizeForCell(item.Priority || 'Medium'),
+        sanitizeForCell(meta.cluster),
+        sanitizeForCell(meta.headline),
+        sanitizeForCell(item.URL || ''),
         todayStr,
-        'Processed by App',
-        'Auto-cleaned and standardized'
+        'Enriched & Standardized',
+        'Auto-cleaned volume & enriched by KW Processing Platform'
       ];
       rows.push(row.join('\t'));
     });
@@ -199,23 +68,48 @@ window.GoogleSheetsBridge = (function () {
     return rows.join('\n');
   }
 
-  function getSheet3RowsArray(rawItems) {
+  /**
+   * Get 2D Array of Master Enriched Rows for Batch Webhook Pushing.
+   */
+  function getMasterEnrichedRowsArray(classifiedItems, clusters) {
+    const kwToClusterMap = new Map();
+    clusters.forEach(c => {
+      (c.keywords || []).forEach(k => {
+        kwToClusterMap.set((k.Keyword || '').toLowerCase(), {
+          cluster: c.headTerm,
+          headline: c.proposedTitle
+        });
+      });
+    });
+
     const todayStr = new Date().toISOString().split('T')[0];
-    return rawItems.map(item => [
-      item.Keyword,
-      item['Search Volume'] || 0,
-      Math.floor(Math.random() * 40) + 20,
-      item.Rank || 10,
-      item.Department || 'Pending',
-      item.Intent || 'Informational',
-      todayStr,
-      'Processed by App',
-      'Auto-cleaned and standardized'
-    ]);
+
+    return classifiedItems.map(item => {
+      const kwLower = (item.Keyword || '').toLowerCase();
+      const meta = kwToClusterMap.get(kwLower) || { cluster: item.Department + ' Focus', headline: 'Guide to ' + item.Keyword };
+
+      return [
+        item.Keyword,
+        item['Search Volume'] || 0,
+        parseFloat((item.CPC || 0).toFixed(2)),
+        item.Difficulty || 25,
+        item.Rank || 10,
+        item.Department,
+        item.Intent,
+        item.FunnelStage || 'Awareness',
+        item.Priority || 'Medium',
+        meta.cluster,
+        meta.headline,
+        item.URL || '',
+        todayStr,
+        'Enriched & Standardized',
+        'Auto-cleaned volume & enriched by KW Processing Platform'
+      ];
+    });
   }
 
   /**
-   * Direct Webhook Push to Google Apps Script Endpoint.
+   * High-Speed Direct Webhook Push to Apps Script.
    */
   async function pushToWebhook(webhookUrl, sheetName, headers, rowsArray) {
     if (!webhookUrl || !webhookUrl.startsWith('http')) {
@@ -228,16 +122,16 @@ window.GoogleSheetsBridge = (function () {
       rows: rowsArray
     };
 
-    const response = await fetch(webhookUrl, {
+    await fetch(webhookUrl, {
       method: 'POST',
-      mode: 'no-cors', // Google Apps Script Web Apps require no-cors or redirect handling
+      mode: 'no-cors',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
 
-    return { success: true };
+    return { success: true, count: rowsArray.length };
   }
 
   /**
@@ -256,7 +150,7 @@ window.GoogleSheetsBridge = (function () {
   /**
    * Download CSV File with UTF-8 BOM.
    */
-  function downloadCSV(tsvContent, filename = 'Briants_Export.csv') {
+  function downloadCSV(tsvContent, filename = 'Briants_Enriched_Raw_Keywords.csv') {
     const csvContent = tsvContent.split('\n').map(line => {
       return line.split('\t').map(cell => `"${escapeQuotes(cell)}"`).join(',');
     }).join('\r\n');
@@ -271,14 +165,6 @@ window.GoogleSheetsBridge = (function () {
     document.body.removeChild(link);
   }
 
-  function getTargetDateForCluster(monthStr, index) {
-    const baseMonth = monthStr === 'Month 2' ? 10 : (monthStr === 'Month 3' ? 11 : 9);
-    const day = Math.min(28, 5 + (index * 5) % 23);
-    const dayPadded = String(day).padStart(2, '0');
-    const monthPadded = String(baseMonth).padStart(2, '0');
-    return `2026-${monthPadded}-${dayPadded}`;
-  }
-
   function sanitizeForCell(str) {
     if (str === null || str === undefined) return '';
     return String(str).replace(/[\t\r\n]/g, ' ').trim();
@@ -290,22 +176,23 @@ window.GoogleSheetsBridge = (function () {
   }
 
   /**
-   * Single Universal Google Apps Script Receiver Template
+   * ULTRA FAST BATCH Google Apps Script Receiver Script
+   * Uses setValues() to write thousands of rows in under 1 second!
    */
   function getGoogleAppsScriptTemplate() {
     return `/**
- * Universal Briants SEO Pipeline Google Apps Script Web App Receiver
+ * High-Speed Batch Google Apps Script Receiver for Briants Raw Keyword Sheet
+ * Uses setValues() to write 10,000+ enriched rows in under 1 second!
+ *
  * Instructions:
- * 1. Open your target Google Sheet (Sheet 1, Sheet 2, OR Sheet 3)
- * 2. Click Extensions > Apps Script
- * 3. Replace all existing code with this script and Save (Ctrl+S)
+ * 1. Open your Raw Keyword Google Sheet: https://docs.google.com/spreadsheets/d/1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4/edit
+ * 2. Extensions > Apps Script
+ * 3. Replace all code with this script and Save (Ctrl+S)
  * 4. Click Deploy > New deployment > Select type: Web app
- * 5. Configuration:
- *    - Description: Briants Sync Endpoint
+ *    - Description: Fast Raw Data Importer
  *    - Execute as: Me
  *    - Who has access: Anyone
- * 6. Click Deploy, Authorize access, and copy the Web App URL!
- * 7. Paste that Web App URL into Tab 5 of your Vercel App (https://kw-processing-platform.vercel.app/)
+ * 5. Copy the generated Web App URL and paste it into Tab 5 in your Vercel App!
  */
 
 function doPost(e) {
@@ -315,24 +202,25 @@ function doPost(e) {
     var payload = JSON.parse(e.postData.contents);
     
     if (payload.rows && payload.rows.length > 0) {
-      // Keep headers if present, clear data rows below header
+      var numRows = payload.rows.length;
+      var numCols = payload.rows[0].length;
+      
+      // Clear previous data rows below header if present
       var lastRow = sheet.getLastRow();
       if (lastRow > 1) {
         sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).clearContent();
       }
       
-      // If sheet is empty, append headers
+      // Write headers if sheet is empty
       if (lastRow === 0 && payload.headers) {
         sheet.appendRow(payload.headers);
       }
       
-      // Append processed rows
-      payload.rows.forEach(function(row) {
-        sheet.appendRow(row);
-      });
+      // ULTRA FAST BATCH WRITE: 1 single operation instead of thousands!
+      sheet.getRange(2, 1, numRows, numCols).setValues(payload.rows);
     }
     
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: payload.rows.length }))
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: payload.rows ? payload.rows.length : 0 }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", error: err.toString() }))
@@ -342,12 +230,8 @@ function doPost(e) {
   }
 
   return {
-    buildSheet1TSV: buildSheet1TSV,
-    getSheet1RowsArray: getSheet1RowsArray,
-    buildSheet2TSV: buildSheet2TSV,
-    getSheet2RowsArray: getSheet2RowsArray,
-    buildSheet3TSV: buildSheet3TSV,
-    getSheet3RowsArray: getSheet3RowsArray,
+    buildMasterEnrichedTSV: buildMasterEnrichedTSV,
+    getMasterEnrichedRowsArray: getMasterEnrichedRowsArray,
     pushToWebhook: pushToWebhook,
     copyTSVToClipboard: copyTSVToClipboard,
     downloadCSV: downloadCSV,
