@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Briants SEO & Content Pipeline Platform</title>
+  <meta name="description" content="A single tailored platform to automate CSV data cleaning, taxonomy tagging, semantic keyword clustering, 3-month editorial calendar planning, and Google Sheets integration for Briants.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Master Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Top Header Bar -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-logo">B</div>
+        <div class="brand-titles">
+          <h1>Briants SEO Content Pipeline <span class="badge-tag">PRO</span></h1>
+          <p>BrightEdge CSV Ingestion • Smart Tagging • Semantic Clustering • 3-Month Editorial Calendar</p>
+        </div>
+      </div>
+
+      <div class="header-metrics">
+        <div class="metric-pill">
+          <span class="metric-label">Keywords</span>
+          <span class="metric-value" id="metric-total-kw">0</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Total Volume</span>
+          <span class="metric-value" id="metric-total-vol">0</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Topic Clusters</span>
+          <span class="metric-value" id="metric-clusters">0</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Month 1 Target</span>
+          <span class="metric-value" id="metric-month1">0</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" id="btn-load-sample">Load Sample Dataset ⚡</button>
+        <button class="btn btn-icon" id="btn-theme-toggle" title="Toggle Light/Dark Theme">🌙</button>
+      </div>
+    </header>
+
+    <!-- Workflow Step Navigation Tabs -->
+    <nav class="workflow-nav">
+      <button class="nav-tab active" data-tab="import">
+        <span class="tab-num">1</span> CSV Import & Cleaner
+      </button>
+      <button class="nav-tab" data-tab="taxonomy">
+        <span class="tab-num">2</span> Taxonomy & Intent Engine
+      </button>
+      <button class="nav-tab" data-tab="clusters">
+        <span class="tab-num">3</span> Pillar & Cluster Grouping
+      </button>
+      <button class="nav-tab" data-tab="calendar">
+        <span class="tab-num">4</span> 3-Month Editorial Calendar
+      </button>
+      <button class="nav-tab" data-tab="export">
+        <span class="tab-num">5</span> Google Sheets Bridge & Exporter
+      </button>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+
+      <!-- ===================================================================
+           TAB 1: CSV IMPORT & CLEANER
+           =================================================================== -->
+      <section class="tab-panel active" id="tab-import">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title"><span>📥</span> Automated CSV Data Ingestion & Sanitizer</h2>
+              <p class="card-subtitle">Drop raw BrightEdge DataCubeX CSV exports here. Numbers, CPCs, and search volumes will be auto-cleaned.</p>
+            </div>
+          </div>
+
+          <div class="dropzone-container">
+            <!-- Drag & Drop Zone -->
+            <div class="dropzone" id="dropzone">
+              <div class="dropzone-icon">📁</div>
+              <h3 class="dropzone-title">Drag & Drop BrightEdge CSV File Here</h3>
+              <p class="dropzone-desc">Supports BrightEdge DataCubeX exports, Ahrefs, Semrush, or custom keyword spreadsheets.</p>
+              <button class="btn btn-primary" onclick="document.getElementById('file-input').click(); event.stopPropagation();">Browse File</button>
+              <input type="file" id="file-input" accept=".csv" style="display: none;">
+            </div>
+
+            <!-- Preset Datasets & Instructions -->
+            <div class="card preset-card">
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 700;">Preset Datasets & Presets</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Quick start with pre-loaded keyword exports for Briants.</p>
+                <div class="preset-list">
+                  <div class="preset-item" onclick="document.getElementById('btn-load-sample').click();">
+                    <h4>Briants BrightEdge 100+ Master Export <span>→</span></h4>
+                    <p>Includes keywords for Fencing, Machinery, Arborist, Building, Agricultural, Gardening & Promo Blog.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
+                <strong>Auto-Standardization:</strong> Strips commas (<code>"14,800"</code> → <code>14800</code>), normalizes currency (<code>"£2.50"</code> → <code>2.50</code>), resolves headers, and deduplicates records automatically.
+              </div>
+            </div>
+          </div>
+
+          <!-- Import Summary Bar -->
+          <div id="import-stats-container"></div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           TAB 2: TAXONOMY & INTENT ENGINE
+           =================================================================== -->
+      <section class="tab-panel" id="tab-taxonomy">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title"><span>🏷️</span> Smart Department Tagging & Intent Analyzer</h2>
+              <p class="card-subtitle">Auto-categorizes keywords into Briants 7 core departments and classifies search intent.</p>
+            </div>
+            <button class="btn btn-outline btn-sm" id="btn-config-rules">Customize Taxonomy Rules ⚙️</button>
+          </div>
+
+          <!-- Filters & Search Toolbar -->
+          <div class="table-toolbar">
+            <div class="search-filter-group">
+              <input type="text" class="input-search" id="taxonomy-search" placeholder="Search keywords...">
+              <select class="select-filter" id="taxonomy-dept-filter">
+                <option value="all">All Departments (7)</option>
+                <option value="Fencing & Landscaping">Fencing & Landscaping</option>
+                <option value="Garden Machinery">Garden Machinery</option>
+                <option value="Arborist & Forestry">Arborist & Forestry</option>
+                <option value="Building Materials">Building Materials</option>
+                <option value="Agricultural Supplies">Agricultural Supplies</option>
+                <option value="Gardening Products">Gardening Products</option>
+                <option value="Promo Blog">Promo Blog</option>
+              </select>
+              <select class="select-filter" id="taxonomy-intent-filter">
+                <option value="all">All Intents</option>
+                <option value="Informational">Informational</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Transactional">Transactional</option>
+                <option value="Commercial/Informational">Commercial/Informational</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Classified Data Table -->
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th>Keyword</th>
+                  <th>Department</th>
+                  <th>Search Intent</th>
+                  <th>Search Volume</th>
+                  <th>CPC</th>
+                </tr>
+              </thead>
+              <tbody id="taxonomy-tbody">
+                <!-- Dynamic Rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           TAB 3: PILLAR & CLUSTER GROUPING
+           =================================================================== -->
+      <section class="tab-panel" id="tab-clusters">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title"><span>🌳</span> Automated Pillar & Cluster Grouping Engine</h2>
+              <p class="card-subtitle">Groups long-tail keywords under high-volume primary seed terms, aggregates volume, and suggests SEO titles.</p>
+            </div>
+            <input type="text" class="input-search" id="cluster-search" placeholder="Search topic clusters..." style="max-width: 280px;">
+          </div>
+
+          <!-- Dynamic Clusters Grid -->
+          <div class="clusters-grid" id="clusters-grid">
+            <!-- Dynamic Cluster Cards -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           TAB 4: 3-MONTH EDITORIAL CALENDAR & KANBAN
+           =================================================================== -->
+      <section class="tab-panel" id="tab-calendar">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title"><span>📅</span> 3-Month Editorial Calendar & Interactive Kanban</h2>
+              <p class="card-subtitle">Drag content titles across status columns and assign target publishing months (Month 1, Month 2, Month 3).</p>
+            </div>
+            <select class="select-filter" id="calendar-month-filter">
+              <option value="all">All 3 Months Schedule</option>
+              <option value="Month 1">Month 1 Focus</option>
+              <option value="Month 2">Month 2 Focus</option>
+              <option value="Month 3">Month 3 Focus</option>
+            </select>
+          </div>
+
+          <!-- Interactive Kanban Board Container -->
+          <div id="kanban-container">
+            <!-- Dynamic Kanban Columns -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           TAB 5: EXPORTER & GOOGLE SHEETS BRIDGE
+           =================================================================== -->
+      <section class="tab-panel" id="tab-export">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title"><span>🚀</span> Multi-Format Exporter & Airtight Google Sheets Sync</h2>
+              <p class="card-subtitle">Export your processed content pipeline to Google Sheets, CSV, or Markdown briefs for writers.</p>
+            </div>
+          </div>
+
+          <div class="export-grid">
+            <!-- 1-Click Clipboard Sync for Google Sheets -->
+            <div class="export-card">
+              <div>
+                <div class="export-card-icon">📋</div>
+                <h3>1-Click Copy for Google Sheets</h3>
+                <p>Generates clean Tab-Separated Values (TSV) directly to your clipboard. Hit <code>Ctrl+V</code> inside any Google Sheet for zero-loss column alignment!</p>
+              </div>
+              <button class="btn btn-primary" id="btn-copy-sheets">Copy for Google Sheets (Ctrl+V) 📋</button>
+            </div>
+
+            <!-- Download Cleaned CSV -->
+            <div class="export-card">
+              <div>
+                <div class="export-card-icon">📊</div>
+                <h3>Download Formatted CSV</h3>
+                <p>Download a clean CSV file pre-formatted with UTF-8 BOM encoding for instant compatibility with Microsoft Excel or Google Sheets upload.</p>
+              </div>
+              <button class="btn btn-secondary" id="btn-download-csv">Download CSV File 📥</button>
+            </div>
+
+            <!-- Google Apps Script Direct Push Webhook -->
+            <div class="export-card">
+              <div>
+                <div class="export-card-icon">⚡</div>
+                <h3>Google Apps Script Automation</h3>
+                <p>Connect your Google Sheet directly via Google Apps Script Web App endpoint for real-time automated data sync.</p>
+              </div>
+              <button class="btn btn-outline" id="btn-apps-script-modal">View Apps Script Setup 🔧</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- ===================================================================
+       MODAL DIALOGS
+       =================================================================== -->
+
+  <!-- Modal 1: Taxonomy Rules Editor -->
+  <div class="modal-backdrop" id="rule-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Customize Department Taxonomy Rules</h3>
+        <button class="btn btn-icon" id="btn-close-rule-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:1rem;">
+          Edit the keyword seed tokens used to categorize keywords into Briants 7 core departments. Standard JSON format:
+        </p>
+        <textarea id="rules-textarea" style="width:100%; height:320px; font-family:monospace; font-size:0.8rem; background:var(--bg-surface-elevated); color:var(--text-main); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-subtle);"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('btn-close-rule-modal').click();">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-rules">Save & Re-tag Dataset ⚡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Content Brief Preview -->
+  <div class="modal-backdrop" id="brief-modal">
+    <div class="modal-dialog" style="max-width:820px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Writer Content Brief</h3>
+        <button class="btn btn-icon" id="btn-close-brief-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="brief-content" id="brief-content-container"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('btn-close-brief-modal').click();">Close</button>
+        <button class="btn btn-primary" id="btn-copy-brief">Copy Markdown Brief 📋</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Google Apps Script Code -->
+  <div class="modal-backdrop" id="script-modal">
+    <div class="modal-dialog" style="max-width:780px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Google Apps Script Web App Integration</h3>
+        <button class="btn btn-icon" id="btn-close-script-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:1rem;">
+          Copy this script into your Google Sheet via <strong>Extensions > Apps Script</strong>, click <strong>Deploy > New Deployment > Web app</strong> (Access: Anyone), and paste your deployment URL to push data live!
+        </p>
+        <textarea id="script-code-container" readonly style="width:100%; height:280px; font-family:monospace; font-size:0.8rem; background:var(--bg-surface-elevated); color:var(--text-main); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-subtle);"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('btn-close-script-modal').click();">Close</button>
+        <button class="btn btn-primary" id="btn-copy-script">Copy Apps Script 📋</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/sampleData.js"></script>
+  <script src="js/csvCleaner.js"></script>
+  <script src="js/taxonomyEngine.js"></script>
+  <script src="js/clusteringEngine.js"></script>
+  <script src="js/calendarManager.js"></script>
+  <script src="js/googleSheetsBridge.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
