@@ -88,6 +88,7 @@
       pillarEditorIcon: document.getElementById('pillar-editor-icon'),
       pillarEditorTitle: document.getElementById('pillar-editor-title'),
       pillarEditorSubtitle: document.getElementById('pillar-editor-subtitle'),
+      btnAutofillPillar: document.getElementById('btn-autofill-pillar'),
       btnBulkClearPillar: document.getElementById('btn-bulk-clear-pillar'),
       inputPillarSearch: document.getElementById('input-pillar-search'),
       pillarMicroTopicsBar: document.getElementById('pillar-micro-topics-bar'),
@@ -104,6 +105,7 @@
       inputCatName: document.getElementById('input-cat-name'),
       inputCatIcon: document.getElementById('input-cat-icon'),
       inputCatTokens: document.getElementById('input-cat-tokens'),
+      chkAutofillCat: document.getElementById('chk-autofill-cat'),
       btnSaveNewCat: document.getElementById('btn-save-new-cat'),
 
       scriptModal: document.getElementById('script-modal'),
@@ -199,6 +201,9 @@
     }
     if (dom.inputPillarSearch) {
       dom.inputPillarSearch.addEventListener('input', () => renderPillarEditorRows());
+    }
+    if (dom.btnAutofillPillar) {
+      dom.btnAutofillPillar.addEventListener('click', handleAutofillPillar);
     }
     if (dom.btnBulkClearPillar) {
       dom.btnBulkClearPillar.addEventListener('click', handleBulkClearPillar);
@@ -599,6 +604,13 @@
     });
   }
 
+  function handleAutofillPillar() {
+    if (!state.activePillarBranch) return;
+    const count = window.SubClusterEngine.autoFillBranch(state.activePillarBranch.id);
+    showToast(`Auto-populated "${state.activePillarBranch.label}" with ${count} matching keywords! ⚡`, 'success');
+    refreshPillarAndMindmap();
+  }
+
   function handleBulkClearPillar() {
     if (!state.activePillarBranch || !state.activePillarBranch.nodes) return;
     const branch = state.activePillarBranch;
@@ -648,20 +660,21 @@
     const name = dom.inputCatName.value.trim();
     const icon = dom.inputCatIcon.value.trim() || '🏷️';
     const tokens = dom.inputCatTokens.value.split(',').map(t => t.trim()).filter(Boolean);
+    const autoFill = dom.chkAutofillCat ? dom.chkAutofillCat.checked : true;
 
     if (!name) {
       showToast('Please enter a category name.', 'error');
       return;
     }
 
-    window.SubClusterEngine.addCustomCategory(name, icon, tokens);
+    const res = window.SubClusterEngine.addCustomCategory(name, icon, tokens, autoFill);
     closeModal(dom.newCategoryModal);
 
     dom.inputCatName.value = '';
     dom.inputCatTokens.value = '';
 
     renderMindmapView();
-    showToast(`Created custom category "${name}" & re-clustered data!`, 'success');
+    showToast(`Created category "${name}" and auto-filled ${res.autoFilledCount} matching keywords! ⚡`, 'success');
   }
 
   /* --- Modals & Helpers --- */

@@ -1,7 +1,6 @@
 /**
  * Enhanced Non-AI Sub-Clustering & Micro-Topic Audit Engine for Briants
- * Features Level 2 Primary Pillars + Level 3 Micro-Topics (e.g. Fuel, Sharpening, Battery, Mini)
- * Supports Discarding to Unassigned Queue, Bulk Clearing, and Custom Category Creation.
+ * Features Auto-Populating Custom Categories, Level 2 Pillars + Level 3 Micro-Topics.
  */
 
 window.SubClusterEngine = (function () {
@@ -83,11 +82,13 @@ window.SubClusterEngine = (function () {
 
   // Manual Keyword Branch Overrides Map (kw.toLowerCase() -> branchId)
   let manualOverrides = new Map();
+  let rawDatasetCache = [];
 
   /**
    * Build 3-level Mindmap Data Tree with keyword audit & micro-topic metrics.
    */
   function buildTopicTree(classifiedItems, seedTopicFilter = 'all') {
+    rawDatasetCache = classifiedItems || [];
     let filtered = classifiedItems;
 
     if (seedTopicFilter && seedTopicFilter !== 'all') {
@@ -258,21 +259,60 @@ window.SubClusterEngine = (function () {
   }
 
   /**
-   * Add a user-defined custom category branch.
+   * Add a user-defined custom category branch & optionally auto-fill matching keywords.
    */
-  function addCustomCategory(categoryName, categoryIcon = '📁', categoryTokens = []) {
+  function addCustomCategory(categoryName, categoryIcon = '📁', categoryTokens = [], autoFill = true) {
     const id = 'custom_' + categoryName.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const colors = ['#007aff', '#ff9500', '#10b981', '#af52de', '#ff2d55', '#30b0c7'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    const cleanTokens = categoryTokens.map(t => t.toLowerCase().trim()).filter(Boolean);
 
     subThemeDefinitions.push({
       id: id,
       label: categoryName,
       icon: categoryIcon,
       color: randomColor,
-      tokens: categoryTokens.map(t => t.toLowerCase().trim()).filter(Boolean),
+      tokens: cleanTokens,
       microTopics: []
     });
+
+    let autoFilledCount = 0;
+    if (autoFill && cleanTokens.length > 0 && rawDatasetCache.length > 0) {
+      rawDatasetCache.forEach(item => {
+        const kw = (item.Keyword || '').toLowerCase().trim();
+        for (const token of cleanTokens) {
+          if (kw.includes(token)) {
+            manualOverrides.set(kw, id);
+            autoFilledCount++;
+            break;
+          }
+        }
+      });
+    }
+
+    return { id: id, autoFilledCount: autoFilledCount };
+  }
+
+  /**
+   * Auto-fill an existing branch with all matching keywords from the dataset.
+   */
+  function autoFillBranch(branchId) {
+    const branchDef = subThemeDefinitions.find(st => st.id === branchId);
+    if (!branchDef || !branchDef.tokens || branchDef.tokens.length === 0) return 0;
+
+    let filledCount = 0;
+    rawDatasetCache.forEach(item => {
+      const kw = (item.Keyword || '').toLowerCase().trim();
+      for (const token of branchDef.tokens) {
+        if (kw.includes(token)) {
+          manualOverrides.set(kw, branchId);
+          filledCount++;
+          break;
+        }
+      }
+    });
+
+    return filledCount;
   }
 
   /**
@@ -291,6 +331,7 @@ window.SubClusterEngine = (function () {
     buildTopicTree: buildTopicTree,
     bulkDiscardBranch: bulkDiscardBranch,
     addCustomCategory: addCustomCategory,
+    autoFillBranch: autoFillBranch,
     reassignKeyword: reassignKeyword,
     getSubThemes: getSubThemes
   };
