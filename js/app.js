@@ -17,6 +17,11 @@
       intent: 'all',
       month: 'all'
     },
+    webhooks: {
+      sheet1: '',
+      sheet2: '',
+      sheet3: ''
+    },
     activeBriefCluster: null
   };
 
@@ -199,7 +204,29 @@
       });
     }
 
-    // 7. Exporter & Webhook Listeners
+    // 7. Auto-Save Webhook URLs as User Types
+    if (dom.urlSheet1) {
+      dom.urlSheet1.addEventListener('input', (e) => {
+        state.webhooks.sheet1 = e.target.value.trim();
+        saveStateToStorage();
+      });
+    }
+
+    if (dom.urlSheet2) {
+      dom.urlSheet2.addEventListener('input', (e) => {
+        state.webhooks.sheet2 = e.target.value.trim();
+        saveStateToStorage();
+      });
+    }
+
+    if (dom.urlSheet3) {
+      dom.urlSheet3.addEventListener('input', (e) => {
+        state.webhooks.sheet3 = e.target.value.trim();
+        saveStateToStorage();
+      });
+    }
+
+    // Exporter & Webhook Push Listeners
     if (dom.btnCopySheet1) {
       dom.btnCopySheet1.addEventListener('click', async () => {
         const tsv = window.GoogleSheetsBridge.buildSheet1TSV(state.clusters);
@@ -644,7 +671,8 @@
     try {
       localStorage.setItem('briants_seo_pipeline_state', JSON.stringify({
         rawItems: state.rawItems,
-        clusters: state.clusters
+        clusters: state.clusters,
+        webhooks: state.webhooks
       }));
     } catch (e) {}
   }
@@ -657,6 +685,12 @@
         if (parsed.rawItems && parsed.rawItems.length > 0) {
           state.rawItems = parsed.rawItems;
           runClassificationAndClustering();
+        }
+        if (parsed.webhooks) {
+          state.webhooks = parsed.webhooks;
+          if (dom.urlSheet1 && state.webhooks.sheet1) dom.urlSheet1.value = state.webhooks.sheet1;
+          if (dom.urlSheet2 && state.webhooks.sheet2) dom.urlSheet2.value = state.webhooks.sheet2;
+          if (dom.urlSheet3 && state.webhooks.sheet3) dom.urlSheet3.value = state.webhooks.sheet3;
         }
       }
     } catch (e) {}
