@@ -68,7 +68,7 @@
         <span class="tab-num">4</span> 3-Month Editorial Calendar
       </button>
       <button class="nav-tab" data-tab="export">
-        <span class="tab-num">5</span> Google Sheets Exporters (3 Sheets)
+        <span class="tab-num">5</span> Google Sheets Exporters & Sync
       </button>
     </nav>
 
@@ -225,14 +225,14 @@
       </section>
 
       <!-- ===================================================================
-           TAB 5: EXPORTER & GOOGLE SHEETS BRIDGE (TAILORED FOR USER'S 3 SHEETS)
+           TAB 5: EXPORTER & GOOGLE SHEETS BRIDGE
            =================================================================== -->
       <section class="tab-panel" id="tab-export">
         <div class="card">
           <div class="card-header">
             <div>
-              <h2 class="card-title"><span>🚀</span> Multi-Format Exporter & Airtight Google Sheets Bridge</h2>
-              <p class="card-subtitle">One-click copy and export formatted precisely for Briants' 3 Google Sheets pipelines.</p>
+              <h2 class="card-title"><span>🚀</span> Multi-Format Exporters & Google Sheets Connection</h2>
+              <p class="card-subtitle">Choose 1-Click Copy (Ctrl+V) OR paste your Google Apps Script Web App URL for automated direct sync.</p>
             </div>
           </div>
 
@@ -243,10 +243,15 @@
                 <div class="export-card-icon">📅</div>
                 <h3>Sheet 1: Editorial Calendar Plan</h3>
                 <p style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem;">Target ID: <code>1tDjMgaL2usjBJigv8coZVcB3_W151NwuEtFem6ZdeJs</code></p>
-                <p>Formats: <i>Content Architecture, Pillar Topic, Cluster Working Title, Primary/Secondary Keywords, Volume, Briants Category, Intent, Month, Target Date, Status, Author</i>.</p>
+                <p>Exports: <i>Content Architecture, Pillar Topic, Cluster Sub-Topic, Primary/Secondary Keywords, Volume, Briants Category, Intent, Month, Target Date, Status, Author</i>.</p>
               </div>
-              <div style="display:flex; flex-direction:column; gap:0.5rem;">
+
+              <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:1rem;">
                 <button class="btn btn-primary" id="btn-copy-sheet1">Copy for Sheet 1 (Ctrl+V) 📋</button>
+                <div style="display:flex; gap:0.4rem;">
+                  <input type="url" class="input-search" id="url-sheet1" placeholder="Paste Sheet 1 Webhook URL (Optional)..." style="font-size:0.75rem; flex:1; min-width:0;">
+                  <button class="btn btn-secondary btn-sm" id="btn-push-sheet1">Push Live ⚡</button>
+                </div>
                 <button class="btn btn-outline btn-sm" id="btn-csv-sheet1">Download CSV 📥</button>
               </div>
             </div>
@@ -257,10 +262,15 @@
                 <div class="export-card-icon">🗝️</div>
                 <h3>Sheet 2: Keyword Master & Mapping</h3>
                 <p style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem;">Target ID: <code>1dfVbm9kiSawM1MGy44BZcMwfjExZ--DJlzc2IT-7vKM</code></p>
-                <p>Formats: <i>Keyword, Volume, Briants Category, Sub-Category, Intent, Buyer Funnel Stage, Target URL, Priority Level, Assigned Cluster</i>.</p>
+                <p>Exports: <i>Keyword, Volume, Briants Category, Sub-Category, Intent, Buyer Funnel Stage, Target URL, Priority Level, Assigned Cluster</i>.</p>
               </div>
-              <div style="display:flex; flex-direction:column; gap:0.5rem;">
+
+              <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:1rem;">
                 <button class="btn btn-primary" id="btn-copy-sheet2">Copy for Sheet 2 (Ctrl+V) 📋</button>
+                <div style="display:flex; gap:0.4rem;">
+                  <input type="url" class="input-search" id="url-sheet2" placeholder="Paste Sheet 2 Webhook URL (Optional)..." style="font-size:0.75rem; flex:1; min-width:0;">
+                  <button class="btn btn-secondary btn-sm" id="btn-push-sheet2">Push Live ⚡</button>
+                </div>
                 <button class="btn btn-outline btn-sm" id="btn-csv-sheet2">Download CSV 📥</button>
               </div>
             </div>
@@ -271,22 +281,27 @@
                 <div class="export-card-icon">📥</div>
                 <h3>Sheet 3: Raw Import & Staging</h3>
                 <p style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem;">Target ID: <code>1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4</code></p>
-                <p>Formats: <i>Keyword, Volume, Keyword Difficulty, BrightEdge Rank, Target Category, Raw Search Intent, Import Date, Processing Status, Notes</i>.</p>
+                <p>Exports: <i>Keyword, Volume, Keyword Difficulty, BrightEdge Rank, Target Category, Raw Search Intent, Import Date, Processing Status, Notes</i>.</p>
               </div>
-              <div style="display:flex; flex-direction:column; gap:0.5rem;">
+
+              <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:1rem;">
                 <button class="btn btn-primary" id="btn-copy-sheet3">Copy for Sheet 3 (Ctrl+V) 📋</button>
+                <div style="display:flex; gap:0.4rem;">
+                  <input type="url" class="input-search" id="url-sheet3" placeholder="Paste Sheet 3 Webhook URL (Optional)..." style="font-size:0.75rem; flex:1; min-width:0;">
+                  <button class="btn btn-secondary btn-sm" id="btn-push-sheet3">Push Live ⚡</button>
+                </div>
                 <button class="btn btn-outline btn-sm" id="btn-csv-sheet3">Download CSV 📥</button>
               </div>
             </div>
           </div>
 
-          <!-- Apps Script Webhook Setup Option -->
+          <!-- Apps Script Webhook Setup Instructions -->
           <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
             <div>
-              <h4 style="font-size: 0.95rem; font-weight: 700;">Prefer Automated Direct Push Endpoint?</h4>
-              <p style="font-size: 0.8rem; color: var(--text-muted);">Set up a Google Apps Script Web App receiver on your sheet to push data via single click.</p>
+              <h4 style="font-size: 0.95rem; font-weight: 700;">How to get a Webhook URL for Direct Push?</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Copy our 1-file Apps Script into your Google Sheet, click Deploy as Web App, and paste the Web App URL above.</p>
             </div>
-            <button class="btn btn-secondary" id="btn-apps-script-modal">View Google Apps Script Code ⚡</button>
+            <button class="btn btn-secondary" id="btn-apps-script-modal">View Universal Apps Script Code ⚡</button>
           </div>
         </div>
       </section>
@@ -340,12 +355,12 @@
   <div class="modal-backdrop" id="script-modal">
     <div class="modal-dialog" style="max-width:780px;">
       <div class="modal-header">
-        <h3 class="modal-title">Google Apps Script Web App Integration</h3>
+        <h3 class="modal-title">Universal Google Apps Script Web App Integration</h3>
         <button class="btn btn-icon" id="btn-close-script-modal">✕</button>
       </div>
       <div class="modal-body">
         <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:1rem;">
-          Copy this script into your Google Sheet via <strong>Extensions > Apps Script</strong>, click <strong>Deploy > New Deployment > Web app</strong> (Access: Anyone), and paste your deployment URL to push data live!
+          Copy this script into any of your 3 Google Sheets via <strong>Extensions > Apps Script</strong>, click <strong>Deploy > New deployment > Web App</strong> (Execute as: Me, Access: Anyone), and paste the Web App URL into the box above!
         </p>
         <textarea id="script-code-container" readonly style="width:100%; height:280px; font-family:monospace; font-size:0.8rem; background:var(--bg-surface-elevated); color:var(--text-main); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-subtle);"></textarea>
       </div>

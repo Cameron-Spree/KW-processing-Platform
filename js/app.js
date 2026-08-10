@@ -70,13 +70,22 @@
       kanbanContainer: document.getElementById('kanban-container'),
       selectCalendarMonthFilter: document.getElementById('calendar-month-filter'),
 
-      // Tab 5: Exporters for User's 3 Sheets
+      // Tab 5: Exporters & Webhook Push
       btnCopySheet1: document.getElementById('btn-copy-sheet1'),
+      urlSheet1: document.getElementById('url-sheet1'),
+      btnPushSheet1: document.getElementById('btn-push-sheet1'),
       btnCsvSheet1: document.getElementById('btn-csv-sheet1'),
+
       btnCopySheet2: document.getElementById('btn-copy-sheet2'),
+      urlSheet2: document.getElementById('url-sheet2'),
+      btnPushSheet2: document.getElementById('btn-push-sheet2'),
       btnCsvSheet2: document.getElementById('btn-csv-sheet2'),
+
       btnCopySheet3: document.getElementById('btn-copy-sheet3'),
+      urlSheet3: document.getElementById('url-sheet3'),
+      btnPushSheet3: document.getElementById('btn-push-sheet3'),
       btnCsvSheet3: document.getElementById('btn-csv-sheet3'),
+
       btnAppsScriptModal: document.getElementById('btn-apps-script-modal'),
 
       // Modals
@@ -190,12 +199,24 @@
       });
     }
 
-    // 7. Exporter Event Listeners for 3 Google Sheets
+    // 7. Exporter & Webhook Listeners
     if (dom.btnCopySheet1) {
       dom.btnCopySheet1.addEventListener('click', async () => {
         const tsv = window.GoogleSheetsBridge.buildSheet1TSV(state.clusters);
         const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
         if (res.success) showToast('Copied ready for Sheet 1 (Editorial Calendar)! Paste with Ctrl+V', 'success');
+      });
+    }
+    if (dom.btnPushSheet1) {
+      dom.btnPushSheet1.addEventListener('click', async () => {
+        const url = dom.urlSheet1 ? dom.urlSheet1.value.trim() : '';
+        const rows = window.GoogleSheetsBridge.getSheet1RowsArray(state.clusters);
+        try {
+          await window.GoogleSheetsBridge.pushToWebhook(url, 'Sheet 1', null, rows);
+          showToast('Data pushed live to Sheet 1!', 'success');
+        } catch (err) {
+          showToast(err.message || 'Webhook push failed.', 'error');
+        }
       });
     }
     if (dom.btnCsvSheet1) {
@@ -212,6 +233,18 @@
         if (res.success) showToast('Copied ready for Sheet 2 (Master Keyword Mapping)! Paste with Ctrl+V', 'success');
       });
     }
+    if (dom.btnPushSheet2) {
+      dom.btnPushSheet2.addEventListener('click', async () => {
+        const url = dom.urlSheet2 ? dom.urlSheet2.value.trim() : '';
+        const rows = window.GoogleSheetsBridge.getSheet2RowsArray(state.classifiedItems, state.clusters);
+        try {
+          await window.GoogleSheetsBridge.pushToWebhook(url, 'Sheet 2', null, rows);
+          showToast('Data pushed live to Sheet 2!', 'success');
+        } catch (err) {
+          showToast(err.message || 'Webhook push failed.', 'error');
+        }
+      });
+    }
     if (dom.btnCsvSheet2) {
       dom.btnCsvSheet2.addEventListener('click', () => {
         const tsv = window.GoogleSheetsBridge.buildSheet2TSV(state.classifiedItems, state.clusters);
@@ -224,6 +257,18 @@
         const tsv = window.GoogleSheetsBridge.buildSheet3TSV(state.rawItems);
         const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
         if (res.success) showToast('Copied ready for Sheet 3 (Raw Import & Staging)! Paste with Ctrl+V', 'success');
+      });
+    }
+    if (dom.btnPushSheet3) {
+      dom.btnPushSheet3.addEventListener('click', async () => {
+        const url = dom.urlSheet3 ? dom.urlSheet3.value.trim() : '';
+        const rows = window.GoogleSheetsBridge.getSheet3RowsArray(state.rawItems);
+        try {
+          await window.GoogleSheetsBridge.pushToWebhook(url, 'Sheet 3', null, rows);
+          showToast('Data pushed live to Sheet 3!', 'success');
+        } catch (err) {
+          showToast(err.message || 'Webhook push failed.', 'error');
+        }
       });
     }
     if (dom.btnCsvSheet3) {

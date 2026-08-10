@@ -34,8 +34,6 @@ window.GoogleSheetsBridge = (function () {
       const isPillar = idx % 3 === 0;
       const arch = isPillar ? 'PILLAR' : (c.department === 'Promo Blog' ? 'PROMO' : 'CLUSTER');
       const secondaries = (c.keywords || []).slice(1).map(k => k.Keyword).join(', ');
-      
-      // Calculate target date (e.g., 2026-09-05 + idx * 7 days)
       const targetDate = getTargetDateForCluster(c.assignedMonth, idx);
 
       const row = [
@@ -58,6 +56,29 @@ window.GoogleSheetsBridge = (function () {
     return rows.join('\n');
   }
 
+  function getSheet1RowsArray(clusters) {
+    return clusters.map((c, idx) => {
+      const isPillar = idx % 3 === 0;
+      const arch = isPillar ? 'PILLAR' : (c.department === 'Promo Blog' ? 'PROMO' : 'CLUSTER');
+      const secondaries = (c.keywords || []).slice(1).map(k => k.Keyword).join(', ');
+      const targetDate = getTargetDateForCluster(c.assignedMonth, idx);
+      return [
+        arch,
+        c.headTerm,
+        c.proposedTitle || c.headTerm,
+        c.headTerm,
+        secondaries || 'None',
+        c.totalVolume || 0,
+        c.department,
+        c.intent,
+        c.assignedMonth || 'Month 1',
+        targetDate,
+        c.status || 'Briefing',
+        'E-commerce Team'
+      ];
+    });
+  }
+
   /**
    * Target Sheet 2: Keyword Master & Cluster Mapping Format
    */
@@ -75,8 +96,6 @@ window.GoogleSheetsBridge = (function () {
     ];
 
     const rows = [headers.join('\t')];
-
-    // Build map from keyword to cluster title
     const kwToClusterMap = new Map();
     clusters.forEach(c => {
       (c.keywords || []).forEach(k => {
@@ -111,6 +130,38 @@ window.GoogleSheetsBridge = (function () {
     return rows.join('\n');
   }
 
+  function getSheet2RowsArray(classifiedItems, clusters) {
+    const kwToClusterMap = new Map();
+    clusters.forEach(c => {
+      (c.keywords || []).forEach(k => {
+        kwToClusterMap.set((k.Keyword || '').toLowerCase(), c.proposedTitle || c.headTerm);
+      });
+    });
+
+    return classifiedItems.map(item => {
+      const intent = item.Intent || 'Informational';
+      let funnelStage = 'Awareness';
+      if (intent === 'Commercial' || intent === 'Commercial/Informational') funnelStage = 'Consideration';
+      if (intent === 'Transactional') funnelStage = 'Decision';
+
+      const vol = item['Search Volume'] || 0;
+      const priority = vol > 10000 ? 'High' : (vol > 3000 ? 'Medium' : 'Low');
+      const clusterTitle = kwToClusterMap.get((item.Keyword || '').toLowerCase()) || 'General Topic Cluster';
+
+      return [
+        item.Keyword,
+        vol,
+        item.Department,
+        item.Department + ' Tools',
+        intent,
+        funnelStage,
+        item.URL || '',
+        priority,
+        clusterTitle
+      ];
+    });
+  }
+
   /**
    * Target Sheet 3: Raw Import & Keyword Staging Format
    */
@@ -134,7 +185,7 @@ window.GoogleSheetsBridge = (function () {
       const row = [
         sanitizeForCell(item.Keyword),
         item['Search Volume'] || 0,
-        Math.floor(Math.random() * 40) + 20, // estimated difficulty
+        Math.floor(Math.random() * 40) + 20,
         item.Rank || 10,
         sanitizeForCell(item.Department || 'Pending'),
         sanitizeForCell(item.Intent || 'Informational'),
@@ -146,6 +197,47 @@ window.GoogleSheetsBridge = (function () {
     });
 
     return rows.join('\n');
+  }
+
+  function getSheet3RowsArray(rawItems) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return rawItems.map(item => [
+      item.Keyword,
+      item['Search Volume'] || 0,
+      Math.floor(Math.random() * 40) + 20,
+      item.Rank || 10,
+      item.Department || 'Pending',
+      item.Intent || 'Informational',
+      todayStr,
+      'Processed by App',
+      'Auto-cleaned and standardized'
+    ]);
+  }
+
+  /**
+   * Direct Webhook Push to Google Apps Script Endpoint.
+   */
+  async function pushToWebhook(webhookUrl, sheetName, headers, rowsArray) {
+    if (!webhookUrl || !webhookUrl.startsWith('http')) {
+      throw new Error('Please enter a valid Google Apps Script Web App URL.');
+    }
+
+    const payload = {
+      sheetName: sheetName,
+      headers: headers,
+      rows: rowsArray
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors', // Google Apps Script Web Apps require no-cors or redirect handling
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    return { success: true };
   }
 
   /**
@@ -198,18 +290,22 @@ window.GoogleSheetsBridge = (function () {
   }
 
   /**
-   * Google Apps Script Webhook receiver template for auto sync.
+   * Single Universal Google Apps Script Receiver Template
    */
   function getGoogleAppsScriptTemplate() {
     return `/**
- * Briants SEO Pipeline Google Sheets Endpoint
+ * Universal Briants SEO Pipeline Google Apps Script Web App Receiver
  * Instructions:
- * 1. Open your target Google Sheet
- * 2. Extensions > Apps Script
- * 3. Replace all code with this script
+ * 1. Open your target Google Sheet (Sheet 1, Sheet 2, OR Sheet 3)
+ * 2. Click Extensions > Apps Script
+ * 3. Replace all existing code with this script and Save (Ctrl+S)
  * 4. Click Deploy > New deployment > Select type: Web app
- * 5. Execute as: Me | Who has access: Anyone
- * 6. Copy Web App URL into the Briants App!
+ * 5. Configuration:
+ *    - Description: Briants Sync Endpoint
+ *    - Execute as: Me
+ *    - Who has access: Anyone
+ * 6. Click Deploy, Authorize access, and copy the Web App URL!
+ * 7. Paste that Web App URL into Tab 5 of your Vercel App (https://kw-processing-platform.vercel.app/)
  */
 
 function doPost(e) {
@@ -218,14 +314,19 @@ function doPost(e) {
     var sheet = ss.getActiveSheet();
     var payload = JSON.parse(e.postData.contents);
     
-    if (payload.action === 'sync_editorial_calendar') {
-      sheet.clearContents();
-      sheet.appendRow([
-        "Content Architecture", "Pillar Topic", "Cluster Sub-Topic / Working Title",
-        "Primary Keyword", "Grouped Secondary Keywords", "Combined Search Volume",
-        "Briants Category", "Search Intent Tag", "Publish Month", "Target Publication Date",
-        "Content Status", "Assigned Author"
-      ]);
+    if (payload.rows && payload.rows.length > 0) {
+      // Keep headers if present, clear data rows below header
+      var lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).clearContent();
+      }
+      
+      // If sheet is empty, append headers
+      if (lastRow === 0 && payload.headers) {
+        sheet.appendRow(payload.headers);
+      }
+      
+      // Append processed rows
       payload.rows.forEach(function(row) {
         sheet.appendRow(row);
       });
@@ -242,8 +343,12 @@ function doPost(e) {
 
   return {
     buildSheet1TSV: buildSheet1TSV,
+    getSheet1RowsArray: getSheet1RowsArray,
     buildSheet2TSV: buildSheet2TSV,
+    getSheet2RowsArray: getSheet2RowsArray,
     buildSheet3TSV: buildSheet3TSV,
+    getSheet3RowsArray: getSheet3RowsArray,
+    pushToWebhook: pushToWebhook,
     copyTSVToClipboard: copyTSVToClipboard,
     downloadCSV: downloadCSV,
     getGoogleAppsScriptTemplate: getGoogleAppsScriptTemplate
