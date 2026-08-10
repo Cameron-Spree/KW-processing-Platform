@@ -1,55 +1,83 @@
 /**
- * Enhanced Non-AI Sub-Clustering & Keyword Audit Engine for Briants
- * Calculates Match Fit Types (Exact Match, Best Fit/Shoehorned, Unclassified/Ignored)
- * Supports User-Created Custom Categories and Manual Keyword Reassignment.
+ * Enhanced Non-AI Sub-Clustering & Micro-Topic Audit Engine for Briants
+ * Features Level 2 Primary Pillars + Level 3 Micro-Topics (e.g. Fuel, Sharpening, Battery, Mini)
+ * Supports Discarding to Unassigned Queue, Bulk Clearing, and Custom Category Creation.
  */
 
 window.SubClusterEngine = (function () {
   'use strict';
 
-  // Default Sub-Theme Definitions
+  // Primary Pillar Definitions
   let subThemeDefinitions = [
     {
       id: 'buying',
       label: 'Buying Guides & Comparisons',
       icon: '🛒',
       color: '#007aff',
-      tokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'for sale', 'cheap', 'cost', 'which', 'deal', 'offers']
+      tokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'for sale', 'cheap', 'cost', 'which', 'deal', 'offers'],
+      microTopics: [
+        { id: 'buying_battery', label: 'Battery / Cordless', tokens: ['battery', 'cordless', 'electric', 'rechargeable'] },
+        { id: 'buying_petrol', label: 'Petrol & Engine', tokens: ['petrol', 'gas', '2 stroke', 'engine'] },
+        { id: 'buying_small', label: 'Small & Mini Chainsaws', tokens: ['small', 'mini', 'compact', 'lightweight', 'handheld', 'one handed', 'top handle'] },
+        { id: 'buying_budget', label: 'Budget & Price Deals', tokens: ['cheap', 'budget', 'price', 'cost', 'deal', 'under', 'affordable'] }
+      ]
     },
     {
       id: 'maintenance',
       label: 'Maintenance & Servicing',
       icon: '🛠️',
       color: '#ff9500',
-      tokens: ['sharpen', 'sharpener', 'oil', 'spark plug', 'clean', 'service', 'maintenance', 'mix ratio', 'fuel', '2 stroke', 'tension', 'troubleshooting', 'repair', 'how to fix', 'servicing']
+      tokens: ['sharpen', 'sharpener', 'oil', 'spark plug', 'clean', 'service', 'maintenance', 'mix ratio', 'fuel', '2 stroke', 'tension', 'troubleshooting', 'repair', 'how to fix', 'servicing'],
+      microTopics: [
+        { id: 'maint_fuel', label: 'Fuel & Oil Mix Ratios', tokens: ['fuel', 'oil', 'mix ratio', '2 stroke', 'petrol mix', 'tank'] },
+        { id: 'maint_sharpen', label: 'Chain Sharpening & Files', tokens: ['sharpen', 'sharpener', 'file', 'filing', 'grinder', 'angle'] },
+        { id: 'maint_repair', label: 'Troubleshooting & Repairs', tokens: ['repair', 'service', 'won\'t start', 'spark plug', 'clean', 'tension', 'fix', 'troubleshooting'] }
+      ]
     },
     {
       id: 'components',
       label: 'Components & Spares',
       icon: '⚙️',
       color: '#30b0c7',
-      tokens: ['bar', 'chain', 'sprocket', 'carburetor', 'starter', 'spares', 'parts', 'filter', '14 inch', '16 inch', '18 inch', 'blade', 'engine', 'motor', 'battery']
+      tokens: ['bar', 'chain', 'sprocket', 'carburetor', 'starter', 'spares', 'parts', 'filter', '14 inch', '16 inch', '18 inch', 'blade', 'engine', 'motor', 'battery'],
+      microTopics: [
+        { id: 'comp_bars_chains', label: 'Guide Bars & Chains', tokens: ['bar', 'chain', '14 inch', '16 inch', '18 inch', 'drive links', 'gauge'] },
+        { id: 'comp_engine_spares', label: 'Carburetors & Filters', tokens: ['carburetor', 'filter', 'spark plug', 'starter', 'recoil', 'sprocket', 'spares'] }
+      ]
     },
     {
       id: 'safety',
       label: 'Safety & PPE',
       icon: '🛡️',
       color: '#ff2d55',
-      tokens: ['safety', 'ppe', 'trousers', 'chaps', 'helmet', 'boots', 'gloves', 'visor', 'protection', 'kickback', 'clothing', 'ear defenders', 'harness']
+      tokens: ['safety', 'ppe', 'trousers', 'chaps', 'helmet', 'boots', 'gloves', 'visor', 'protection', 'kickback', 'clothing', 'ear defenders', 'harness'],
+      microTopics: [
+        { id: 'safe_clothing', label: 'Chaps, Trousers & Boots', tokens: ['trousers', 'chaps', 'boots', 'gloves', 'clothing', 'protection'] },
+        { id: 'safe_head_ear', label: 'Helmets, Visors & PPE', tokens: ['helmet', 'visor', 'ppe', 'ear defenders', 'safety', 'harness'] }
+      ]
     },
     {
       id: 'brands',
       label: 'Brands & Manufacturers',
       icon: '🏷️',
       color: '#8b5cf6',
-      tokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'titan', 'mountfield', 'einhell', 'milwaukee', 'honda', 'petzl', 'felco', 'celotex', 'catnic']
+      tokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'titan', 'mountfield', 'einhell', 'milwaukee', 'honda', 'petzl', 'felco', 'celotex', 'catnic'],
+      microTopics: [
+        { id: 'brand_stihl', label: 'STIHL Models & Gear', tokens: ['stihl', 'ms 180', 'ms 211', 'gta 26'] },
+        { id: 'brand_husqvarna', label: 'Husqvarna Models', tokens: ['husqvarna', '135', '435', '550'] },
+        { id: 'brand_other', label: 'Makita, DeWalt & Others', tokens: ['makita', 'dewalt', 'titan', 'einhell', 'mountfield'] }
+      ]
     },
     {
       id: 'usecases',
       label: 'Use Cases & Applications',
       icon: '🌲',
       color: '#10b981',
-      tokens: ['pruning', 'firewood', 'logging', 'felling', 'arborist', 'tree surgeon', 'home use', 'garden', 'heavy duty', 'commercial', 'slabs', 'diy', 'construction']
+      tokens: ['pruning', 'firewood', 'logging', 'felling', 'arborist', 'tree surgeon', 'home use', 'garden', 'heavy duty', 'commercial', 'slabs', 'diy', 'construction'],
+      microTopics: [
+        { id: 'use_garden', label: 'Garden & Firewood', tokens: ['garden', 'firewood', 'pruning', 'home use', 'diy'] },
+        { id: 'use_pro', label: 'Arborist & Logging', tokens: ['arborist', 'felling', 'logging', 'tree surgeon', 'heavy duty', 'commercial'] }
+      ]
     }
   ];
 
@@ -57,7 +85,7 @@ window.SubClusterEngine = (function () {
   let manualOverrides = new Map();
 
   /**
-   * Build 3-level Mindmap Data Tree with keyword audit metrics.
+   * Build 3-level Mindmap Data Tree with keyword audit & micro-topic metrics.
    */
   function buildTopicTree(classifiedItems, seedTopicFilter = 'all') {
     let filtered = classifiedItems;
@@ -89,10 +117,10 @@ window.SubClusterEngine = (function () {
       });
     });
 
-    // Unclassified / Fallback Branch
+    // Unclassified / Fallback / Discarded Queue
     branchMap.set('unclassified', {
       id: 'unclassified',
-      label: 'Unclassified / Ignored Keywords',
+      label: 'Unclassified / To Be Assigned',
       icon: '❓',
       color: '#86868b',
       branchVolume: 0,
@@ -112,17 +140,25 @@ window.SubClusterEngine = (function () {
       if (manualOverrides.has(kw)) {
         const overrideBranchId = manualOverrides.get(kw);
         const branch = branchMap.get(overrideBranchId) || branchMap.get('unclassified');
+        const isUnassigned = branch.id === 'unclassified';
+
         const enrichedItem = {
           ...item,
-          fitType: 'manual_override',
-          fitLabel: 'Hand-Assigned ✋',
+          fitType: isUnassigned ? 'unclassified' : 'manual_override',
+          fitLabel: isUnassigned ? 'Unassigned ❓' : 'Hand-Assigned ✋',
           assignedBranchId: branch.id,
-          assignedBranchLabel: branch.label
+          assignedBranchLabel: branch.label,
+          microTopicLabel: assignMicroTopic(kw, branch)
         };
         branch.nodes.push(enrichedItem);
         branch.branchVolume += (item['Search Volume'] || 0);
-        branch.exactCount++;
-        globalExactCount++;
+
+        if (isUnassigned) {
+          globalUnclassifiedCount++;
+        } else {
+          branch.exactCount++;
+          globalExactCount++;
+        }
         return;
       }
 
@@ -167,7 +203,8 @@ window.SubClusterEngine = (function () {
         fitType: fitType,
         fitLabel: fitLabel,
         assignedBranchId: branch.id,
-        assignedBranchLabel: branch.label
+        assignedBranchLabel: branch.label,
+        microTopicLabel: assignMicroTopic(kw, branch)
       };
 
       branch.nodes.push(enrichedItem);
@@ -196,6 +233,30 @@ window.SubClusterEngine = (function () {
     };
   }
 
+  function assignMicroTopic(kw, branch) {
+    if (!branch || !branch.microTopics) return 'General';
+    for (const micro of branch.microTopics) {
+      for (const token of micro.tokens) {
+        if (kw.includes(token)) {
+          return micro.label;
+        }
+      }
+    }
+    return 'General';
+  }
+
+  /**
+   * Bulk move all keywords in a pillar branch to Unclassified queue.
+   */
+  function bulkDiscardBranch(branchNodes) {
+    if (!branchNodes || !Array.isArray(branchNodes)) return;
+    branchNodes.forEach(node => {
+      if (node.Keyword) {
+        manualOverrides.set(node.Keyword.toLowerCase().trim(), 'unclassified');
+      }
+    });
+  }
+
   /**
    * Add a user-defined custom category branch.
    */
@@ -209,7 +270,8 @@ window.SubClusterEngine = (function () {
       label: categoryName,
       icon: categoryIcon,
       color: randomColor,
-      tokens: categoryTokens.map(t => t.toLowerCase().trim()).filter(Boolean)
+      tokens: categoryTokens.map(t => t.toLowerCase().trim()).filter(Boolean),
+      microTopics: []
     });
   }
 
@@ -227,6 +289,7 @@ window.SubClusterEngine = (function () {
 
   return {
     buildTopicTree: buildTopicTree,
+    bulkDiscardBranch: bulkDiscardBranch,
     addCustomCategory: addCustomCategory,
     reassignKeyword: reassignKeyword,
     getSubThemes: getSubThemes

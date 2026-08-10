@@ -205,7 +205,7 @@
           <div class="card-header">
             <div>
               <h2 class="card-title"><span>⚡</span> Sync Enriched Dataset to Master Raw Sheet</h2>
-              <p class="card-subtitle">Pushes maximum data richness to your Raw Keyword Sheet (Target ID: <code>1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4</code>) in a single fast batch call!</p>
+              <p class="card-subtitle">Pushes maximum data richness to your Raw Keyword Sheet (Target ID: <code>1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4</code>). Note: Uncategorized/discarded keywords are strictly excluded!</p>
             </div>
           </div>
 
@@ -288,17 +288,25 @@
           <span id="pillar-editor-icon" style="font-size:1.4rem;">🛒</span>
           <div>
             <h3 class="modal-title" id="pillar-editor-title">Pillar Editor</h3>
-            <p style="font-size:0.78rem; color:var(--text-muted);" id="pillar-editor-subtitle">Review, audit, and reassign keywords belonging to this pillar branch.</p>
+            <p style="font-size:0.78rem; color:var(--text-muted);" id="pillar-editor-subtitle">Review, audit, micro-group, and reassign keywords belonging to this pillar branch.</p>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:0.75rem;">
-          <input type="text" class="input-search" id="input-pillar-search" placeholder="Search keywords in this pillar..." style="font-size:0.8rem; padding:0.35rem 0.85rem; min-width:220px;">
+          <button class="btn btn-outline btn-sm" id="btn-bulk-clear-pillar" style="color:#ef4444; border-color:rgba(239,68,68,0.3);" title="Move all keywords in this category to Unassigned Queue">
+            🧹 Clear Category to Unassigned
+          </button>
+          <input type="text" class="input-search" id="input-pillar-search" placeholder="Search keywords..." style="font-size:0.8rem; padding:0.35rem 0.85rem; min-width:200px;">
           <button class="btn btn-icon" id="btn-close-pillar-editor">✕</button>
         </div>
       </div>
       
       <div class="modal-body" style="padding:1.25rem;">
-        <div class="table-responsive" style="max-height: calc(88vh - 160px);">
+        <!-- Micro-Topics Filter Bar -->
+        <div id="pillar-micro-topics-bar" style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border-subtle);">
+          <!-- Dynamic Micro-Topic Pills -->
+        </div>
+
+        <div class="table-responsive" style="max-height: calc(88vh - 200px);">
           <table class="data-table">
             <thead>
               <tr>
@@ -306,8 +314,10 @@
                 <th>Keyword</th>
                 <th>Search Volume</th>
                 <th>Est. CPC (£)</th>
+                <th>Micro Topic</th>
                 <th>Match Type</th>
-                <th style="width:240px;">Reassign Sub-Theme Branch</th>
+                <th style="width:220px;">Reassign Branch</th>
+                <th style="width:90px;">Action</th>
               </tr>
             </thead>
             <tbody id="pillar-editor-tbody">

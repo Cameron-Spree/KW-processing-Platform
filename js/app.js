@@ -21,7 +21,8 @@
     },
     executionTimeMs: 0,
     activeReassignKw: null,
-    activePillarBranch: null
+    activePillarBranch: null,
+    activeMicroFilter: 'all'
   };
 
   // DOM Elements Cache
@@ -87,7 +88,9 @@
       pillarEditorIcon: document.getElementById('pillar-editor-icon'),
       pillarEditorTitle: document.getElementById('pillar-editor-title'),
       pillarEditorSubtitle: document.getElementById('pillar-editor-subtitle'),
+      btnBulkClearPillar: document.getElementById('btn-bulk-clear-pillar'),
       inputPillarSearch: document.getElementById('input-pillar-search'),
+      pillarMicroTopicsBar: document.getElementById('pillar-micro-topics-bar'),
       pillarEditorTbody: document.getElementById('pillar-editor-tbody'),
 
       reassignModal: document.getElementById('reassign-modal'),
@@ -197,6 +200,9 @@
     if (dom.inputPillarSearch) {
       dom.inputPillarSearch.addEventListener('input', () => renderPillarEditorRows());
     }
+    if (dom.btnBulkClearPillar) {
+      dom.btnBulkClearPillar.addEventListener('click', handleBulkClearPillar);
+    }
 
     // 6. Reassign Modal Controls
     if (dom.btnCloseReassignModal) {
@@ -227,7 +233,7 @@
       dom.btnCopyMaster.addEventListener('click', async () => {
         const tsv = window.GoogleSheetsBridge.buildMasterEnrichedTSV(state.classifiedItems, state.clusters);
         const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
-        if (res.success) showToast(`Copied ${state.classifiedItems.length} enriched keywords! Paste into cell A2 with Ctrl+V`, 'success');
+        if (res.success) showToast(`Copied enriched keywords! (Uncategorized items excluded) Paste into cell A2 with Ctrl+V`, 'success');
       });
     }
 
@@ -239,7 +245,7 @@
           const startTime = performance.now();
           await window.GoogleSheetsBridge.pushToWebhook(url, 'Raw Data Sheet', null, rows);
           const pushTimeMs = Math.round(performance.now() - startTime);
-          showToast(`Successfully pushed ${rows.length} enriched keywords in ${pushTimeMs}ms!`, 'success');
+          showToast(`Successfully pushed ${rows.length} categorized keywords in ${pushTimeMs}ms! (Uncategorized items excluded)`, 'success');
         } catch (err) {
           showToast(err.message || 'Batch push failed.', 'error');
         }
@@ -249,7 +255,7 @@
     if (dom.btnDownloadMasterCsv) {
       dom.btnDownloadMasterCsv.addEventListener('click', () => {
         const tsv = window.GoogleSheetsBridge.buildMasterEnrichedTSV(state.classifiedItems, state.clusters);
-        window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Enriched_Raw_Keywords.csv');
+        window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Categorized_Raw_Keywords.csv');
       });
     }
 
@@ -463,13 +469,54 @@
   /* --- Full-Screen Pillar Editor Modal Logic --- */
   function openPillarEditorModal(branch) {
     state.activePillarBranch = branch;
+    state.activeMicroFilter = 'all';
+
     dom.pillarEditorIcon.textContent = branch.icon || '📁';
     dom.pillarEditorTitle.textContent = `${branch.label} Editor`;
     dom.pillarEditorSubtitle.textContent = `Auditing ${branch.nodes.length} keywords • Total Vol: ${(branch.branchVolume || 0).toLocaleString()} • ✓ ${branch.exactCount} Exact | ⚡ ${branch.bestFitCount} Best Fit`;
 
     if (dom.inputPillarSearch) dom.inputPillarSearch.value = '';
+
+    renderMicroTopicsBar(branch);
     renderPillarEditorRows();
     openModal(dom.pillarEditorModal);
+  }
+
+  function renderMicroTopicsBar(branch) {
+    if (!dom.pillarMicroTopicsBar) return;
+
+    const microTopics = branch.microTopics || [];
+    const microCounts = new Map();
+
+    (branch.nodes || []).forEach(n => {
+      const label = n.microTopicLabel || 'General';
+      microCounts.set(label, (microCounts.get(label) || 0) + 1);
+    });
+
+    let pillsHtml = `
+      <button class="audit-chip ${state.activeMicroFilter === 'all' ? 'active' : ''}" data-micro="all">
+        All Micro-Topics (${branch.nodes.length})
+      </button>
+    `;
+
+    microCounts.forEach((count, label) => {
+      pillsHtml += `
+        <button class="audit-chip green ${state.activeMicroFilter === label ? 'active' : ''}" data-micro="${escapeHtml(label)}">
+          ${escapeHtml(label)} (${count})
+        </button>
+      `;
+    });
+
+    dom.pillarMicroTopicsBar.innerHTML = pillsHtml;
+
+    const btns = dom.pillarMicroTopicsBar.querySelectorAll('.audit-chip');
+    btns.forEach(b => {
+      b.addEventListener('click', () => {
+        state.activeMicroFilter = b.dataset.micro;
+        renderMicroTopicsBar(branch);
+        renderPillarEditorRows();
+      });
+    });
   }
 
   function renderPillarEditorRows() {
@@ -479,13 +526,17 @@
     const branch = state.activePillarBranch;
     const subThemes = window.SubClusterEngine.getSubThemes();
 
-    const filtered = branch.nodes.filter(n => !query || n.Keyword.toLowerCase().includes(query));
+    const filtered = branch.nodes.filter(n => {
+      const matchesSearch = !query || n.Keyword.toLowerCase().includes(query);
+      const matchesMicro = state.activeMicroFilter === 'all' || (n.microTopicLabel || 'General') === state.activeMicroFilter;
+      return matchesSearch && matchesMicro;
+    });
 
     if (filtered.length === 0) {
       dom.pillarEditorTbody.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
-            No keywords found matching "${escapeHtml(query)}" in this pillar.
+          <td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">
+            No keywords found matching filter criteria in this pillar.
           </td>
         </tr>
       `;
@@ -505,11 +556,18 @@
           <td><strong style="color:var(--text-main); font-size:0.9rem;">${escapeHtml(item.Keyword)}</strong></td>
           <td><strong>${(item['Search Volume'] || 0).toLocaleString()}</strong></td>
           <td>£${(item.CPC || 0).toFixed(2)}</td>
+          <td><span class="badge-tag" style="background:rgba(0,122,255,0.08); color:#0066cc;">${escapeHtml(item.microTopicLabel || 'General')}</span></td>
           <td><span class="badge-fit ${fitBadgeClass}">${item.fitLabel || 'Match'}</span></td>
           <td>
             <select class="select-filter select-inline-reassign" data-kw="${escapeHtml(item.Keyword)}" style="font-size:0.78rem; padding:0.25rem 0.65rem; width:100%;">
               ${optionsHtml}
+              <option value="unclassified">❓ Unassigned Queue</option>
             </select>
+          </td>
+          <td>
+            <button class="btn btn-outline btn-sm btn-discard-row" data-kw="${escapeHtml(item.Keyword)}" style="font-size:0.7rem; padding:0.2rem 0.55rem; color:#ef4444; border-color:rgba(239,68,68,0.3);" title="Move to Unassigned Queue">
+              🗑️ Discard
+            </button>
           </td>
         </tr>
       `;
@@ -525,18 +583,44 @@
         const targetBranchId = e.target.value;
         window.SubClusterEngine.reassignKeyword(kw, targetBranchId);
         showToast(`Reassigned "${kw}"!`, 'success');
-        renderMindmapView();
-        
-        // Refresh active pillar view
-        const currentFilter = window.currentMindmapFilter || 'chainsaw';
-        const updatedTree = window.SubClusterEngine.buildTopicTree(state.classifiedItems, currentFilter);
-        const updatedBranch = (updatedTree.branches || []).find(b => b.id === branch.id);
-        if (updatedBranch) {
-          state.activePillarBranch = updatedBranch;
-          renderPillarEditorRows();
-        }
+        refreshPillarAndMindmap();
       });
     });
+
+    // Wire Discard Row buttons
+    const discardBtns = dom.pillarEditorTbody.querySelectorAll('.btn-discard-row');
+    discardBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const kw = e.target.dataset.kw;
+        window.SubClusterEngine.reassignKeyword(kw, 'unclassified');
+        showToast(`Moved "${kw}" to Unassigned Queue 🗑️`, 'info');
+        refreshPillarAndMindmap();
+      });
+    });
+  }
+
+  function handleBulkClearPillar() {
+    if (!state.activePillarBranch || !state.activePillarBranch.nodes) return;
+    const branch = state.activePillarBranch;
+    const count = branch.nodes.length;
+
+    window.SubClusterEngine.bulkDiscardBranch(branch.nodes);
+    showToast(`Cleared ${count} keywords from "${branch.label}" to Unassigned Queue 🧹`, 'success');
+    refreshPillarAndMindmap();
+  }
+
+  function refreshPillarAndMindmap() {
+    renderMindmapView();
+    if (state.activePillarBranch) {
+      const currentFilter = window.currentMindmapFilter || 'chainsaw';
+      const updatedTree = window.SubClusterEngine.buildTopicTree(state.classifiedItems, currentFilter);
+      const updatedBranch = (updatedTree.branches || []).find(b => b.id === state.activePillarBranch.id);
+      if (updatedBranch) {
+        state.activePillarBranch = updatedBranch;
+        renderMicroTopicsBar(updatedBranch);
+        renderPillarEditorRows();
+      }
+    }
   }
 
   function openReassignModal(kwStr) {
@@ -546,7 +630,7 @@
     const subThemes = window.SubClusterEngine.getSubThemes();
     dom.reassignBranchSelect.innerHTML = subThemes.map(st => `
       <option value="${st.id}">${st.icon} ${st.label}</option>
-    `).join('');
+    `).join('') + '<option value="unclassified">❓ Unassigned Queue</option>';
 
     openModal(dom.reassignModal);
   }
