@@ -1,6 +1,5 @@
 /**
- * Main Application Orchestrator for Briants SEO-to-Content Pipeline
- * High-Speed Batch Engine with Mindmap Architecture
+ * Main Application Orchestrator for Briants SEO Data Processing Engine
  */
 
 (function () {
@@ -15,14 +14,12 @@
     filters: {
       search: '',
       department: 'all',
-      intent: 'all',
-      month: 'all'
+      intent: 'all'
     },
     webhooks: {
       masterUrl: ''
     },
-    executionTimeMs: 0,
-    activeBriefCluster: null
+    executionTimeMs: 0
   };
 
   // DOM Elements Cache
@@ -70,11 +67,7 @@
       // Tab 3: Mindmap Architecture
       mindmapCanvasContainer: document.getElementById('mindmap-canvas-container'),
 
-      // Tab 4: Editorial Calendar
-      kanbanContainer: document.getElementById('kanban-container'),
-      selectCalendarMonthFilter: document.getElementById('calendar-month-filter'),
-
-      // Tab 5: Master Raw Sheet Sync
+      // Tab 4: Master Raw Sheet Sync
       btnCopyMaster: document.getElementById('btn-copy-master'),
       urlMaster: document.getElementById('url-master'),
       btnPushMaster: document.getElementById('btn-push-master'),
@@ -86,11 +79,6 @@
       btnCloseRuleModal: document.getElementById('btn-close-rule-modal'),
       btnSaveRules: document.getElementById('btn-save-rules'),
       rulesTextarea: document.getElementById('rules-textarea'),
-
-      briefModal: document.getElementById('brief-modal'),
-      btnCloseBriefModal: document.getElementById('btn-close-brief-modal'),
-      briefContentContainer: document.getElementById('brief-content-container'),
-      btnCopyBrief: document.getElementById('btn-copy-brief'),
 
       scriptModal: document.getElementById('script-modal'),
       btnCloseScriptModal: document.getElementById('btn-close-script-modal'),
@@ -179,15 +167,7 @@
       dom.btnSaveRules.addEventListener('click', handleSaveRules);
     }
 
-    // 5. Calendar Month Filter
-    if (dom.selectCalendarMonthFilter) {
-      dom.selectCalendarMonthFilter.addEventListener('change', (e) => {
-        state.filters.month = e.target.value;
-        renderKanbanBoard();
-      });
-    }
-
-    // 6. Auto-Save Master Webhook URL
+    // 5. Auto-Save Master Webhook URL
     if (dom.urlMaster) {
       dom.urlMaster.addEventListener('input', (e) => {
         state.webhooks.masterUrl = e.target.value.trim();
@@ -230,14 +210,6 @@
       dom.btnAppsScriptModal.addEventListener('click', openScriptModal);
     }
 
-    // Brief Modal Controls
-    if (dom.btnCloseBriefModal) {
-      dom.btnCloseBriefModal.addEventListener('click', () => closeModal(dom.briefModal));
-    }
-    if (dom.btnCopyBrief) {
-      dom.btnCopyBrief.addEventListener('click', handleCopyBrief);
-    }
-
     // Script Modal Controls
     if (dom.btnCloseScriptModal) {
       dom.btnCloseScriptModal.addEventListener('click', () => closeModal(dom.scriptModal));
@@ -274,7 +246,6 @@
 
     if (tabId === 'taxonomy') renderTaxonomyTable();
     if (tabId === 'clusters') renderMindmapView();
-    if (tabId === 'calendar') renderKanbanBoard();
   }
 
   /* --- Data Ingestion & Enrichment --- */
@@ -341,7 +312,6 @@
     updateHeaderMetrics();
     renderTaxonomyTable();
     renderMindmapView();
-    renderKanbanBoard();
   }
 
   function updateHeaderMetrics() {
@@ -438,69 +408,12 @@
       treeData,
       dom.mindmapCanvasContainer,
       (branch) => {
-        // Push Branch to Editorial Kanban Board
-        if (!branch || !branch.nodes) return;
-        const newClusters = window.ClusteringEngine.generateClusters(branch.nodes);
-        newClusters.forEach(nc => {
-          nc.proposedTitle = `[${branch.label}] ${nc.proposedTitle}`;
-          nc.assignedMonth = 'Month 1';
-          nc.status = 'Briefing';
-          state.clusters.unshift(nc);
-        });
-
-        saveStateToStorage();
-        showToast(`Pushed ${newClusters.length} topic clusters from "${branch.label}" to Editorial Kanban!`, 'success');
+        showToast(`Sub-theme "${branch.label}" selected!`, 'info');
       }
     );
   }
 
-  /* --- Tab 4: Editorial Kanban Board --- */
-  function renderKanbanBoard() {
-    if (!dom.kanbanContainer || !window.CalendarManager) return;
-
-    const monthFilter = state.filters.month;
-    let clustersToRender = state.clusters;
-
-    if (monthFilter !== 'all') {
-      clustersToRender = state.clusters.filter(c => (c.assignedMonth || 'Month 1') === monthFilter);
-    }
-
-    window.CalendarManager.renderKanban(
-      clustersToRender,
-      dom.kanbanContainer,
-      (clusterId, newStatus) => {
-        const cluster = state.clusters.find(c => c.id === clusterId);
-        if (cluster) {
-          cluster.status = newStatus;
-          saveStateToStorage();
-          renderKanbanBoard();
-          showToast(`Topic moved to ${newStatus}`, 'info');
-        }
-      },
-      (cluster) => openBriefModal(cluster)
-    );
-  }
-
   /* --- Modals & Helpers --- */
-  function openBriefForClusterId(clusterId) {
-    const cluster = state.clusters.find(c => c.id === clusterId);
-    if (cluster) openBriefModal(cluster);
-  }
-
-  function openBriefModal(cluster) {
-    state.activeBriefCluster = cluster;
-    const briefText = window.CalendarManager.generateContentBrief(cluster);
-    dom.briefContentContainer.textContent = briefText;
-    openModal(dom.briefModal);
-  }
-
-  function handleCopyBrief() {
-    if (!dom.briefContentContainer) return;
-    navigator.clipboard.writeText(dom.briefContentContainer.textContent).then(() => {
-      showToast('Markdown Brief copied to clipboard!', 'success');
-    });
-  }
-
   function openRuleConfigModal() {
     const rules = window.TaxonomyEngine.getRules();
     dom.rulesTextarea.value = JSON.stringify(rules, null, 2);
@@ -532,7 +445,6 @@
     });
   }
 
-  /* --- Helpers & Persistence --- */
   function openModal(el) {
     if (el) el.classList.add('active');
   }
@@ -593,7 +505,6 @@
 
   // Global Exports for inline onclicks
   window.BriantsApp = {
-    openBriefForClusterId: openBriefForClusterId,
     refreshMindmap: renderMindmapView
   };
 })();

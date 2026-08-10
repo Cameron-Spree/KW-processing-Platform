@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Briants SEO & Content Pipeline Platform</title>
-  <meta name="description" content="A single tailored platform to automate CSV data cleaning, taxonomy tagging, semantic keyword clustering, 3-month editorial calendar planning, and Google Sheets integration for Briants.">
+  <title>Briants SEO Data Processing & Enrichment Engine</title>
+  <meta name="description" content="A single high-speed platform to clean, enrich, and map raw BrightEdge CSV keyword datasets for Briants.">
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,8 +23,8 @@
       <div class="brand-section">
         <div class="brand-logo">B</div>
         <div class="brand-titles">
-          <h1>Briants SEO Content Pipeline <span class="badge-tag">HIGH SPEED</span></h1>
-          <p>BrightEdge High-Speed Ingestion • Data Enrichment • Topic Mindmap Architecture • Master Sheet Sync</p>
+          <h1>Briants SEO Data Processing Engine <span class="badge-tag">HIGH SPEED</span></h1>
+          <p>BrightEdge CSV Cleaning • 15-Attribute Data Enrichment • Topic Mindmap Architecture • Master Sheet Sync</p>
         </div>
       </div>
 
@@ -53,7 +53,7 @@
       </div>
     </header>
 
-    <!-- Workflow Step Navigation Tabs -->
+    <!-- Streamlined Data Processing Workflow Tabs -->
     <nav class="workflow-nav">
       <button class="nav-tab active" data-tab="import">
         <span class="tab-num">1</span> High-Speed CSV Cleaner
@@ -64,11 +64,8 @@
       <button class="nav-tab" data-tab="clusters">
         <span class="tab-num">3</span> Topic Mindmap Architecture 🗺️
       </button>
-      <button class="nav-tab" data-tab="calendar">
-        <span class="tab-num">4</span> 3-Month Editorial Calendar
-      </button>
       <button class="nav-tab" data-tab="export">
-        <span class="tab-num">5</span> Master Raw Sheet Sync ⚡
+        <span class="tab-num">4</span> Master Raw Sheet Sync ⚡
       </button>
     </nav>
 
@@ -201,32 +198,7 @@
       </section>
 
       <!-- ===================================================================
-           TAB 4: 3-MONTH EDITORIAL CALENDAR & KANBAN
-           =================================================================== -->
-      <section class="tab-panel" id="tab-calendar">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title"><span>📅</span> 3-Month Editorial Calendar & Interactive Kanban</h2>
-              <p class="card-subtitle">Drag content titles across status columns and assign target publishing months.</p>
-            </div>
-            <select class="select-filter" id="calendar-month-filter">
-              <option value="all">All 3 Months Schedule</option>
-              <option value="Month 1">Month 1 Focus</option>
-              <option value="Month 2">Month 2 Focus</option>
-              <option value="Month 3">Month 3 Focus</option>
-            </select>
-          </div>
-
-          <!-- Interactive Kanban Board Container -->
-          <div id="kanban-container">
-            <!-- Dynamic Kanban Columns -->
-          </div>
-        </div>
-      </section>
-
-      <!-- ===================================================================
-           TAB 5: MASTER RAW KEYWORD SHEET SYNC
+           TAB 4: MASTER RAW KEYWORD SHEET SYNC (STREAMLINED & ULTRA-FAST)
            =================================================================== -->
       <section class="tab-panel" id="tab-export">
         <div class="card">
@@ -308,24 +280,7 @@
     </div>
   </div>
 
-  <!-- Modal 2: Content Brief Preview -->
-  <div class="modal-backdrop" id="brief-modal">
-    <div class="modal-dialog" style="max-width:820px;">
-      <div class="modal-header">
-        <h3 class="modal-title">Writer Content Brief</h3>
-        <button class="btn btn-icon" id="btn-close-brief-modal">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="brief-content" id="brief-content-container"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="document.getElementById('btn-close-brief-modal').click();">Close</button>
-        <button class="btn btn-primary" id="btn-copy-brief">Copy Markdown Brief 📋</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 3: Google Apps Script Code -->
+  <!-- Modal 2: Google Apps Script Code -->
   <div class="modal-backdrop" id="script-modal">
     <div class="modal-dialog" style="max-width:780px;">
       <div class="modal-header">
@@ -334,7 +289,7 @@
       </div>
       <div class="modal-body">
         <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:1rem;">
-          Copy this script into your Raw Keyword Google Sheet (<strong>Extensions > Apps Script</strong>), click <strong>Deploy > New deployment > Web App</strong> (Execute as: Me, Access: Anyone), and paste the URL in Tab 5!
+          Copy this script into your Raw Keyword Google Sheet (<strong>Extensions > Apps Script</strong>), click <strong>Deploy > New deployment > Web App</strong> (Execute as: Me, Access: Anyone), and paste the URL in Tab 4!
         </p>
         <textarea id="script-code-container" readonly style="width:100%; height:280px; font-family:monospace; font-size:0.8rem; background:var(--bg-surface-elevated); color:var(--text-main); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-subtle);"></textarea>
       </div>
@@ -355,7 +310,6 @@
   <script src="js/clusteringEngine.js"></script>
   <script src="js/subClusterEngine.js"></script>
   <script src="js/mindmapRenderer.js"></script>
-  <script src="js/calendarManager.js"></script>
   <script src="js/googleSheetsBridge.js"></script>
   <script src="js/app.js"></script>
 </body>
