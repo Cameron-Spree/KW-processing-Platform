@@ -28,7 +28,7 @@
     initEventListeners();
     loadStateFromStorage();
 
-    // If no state, auto-load sample data for immediate WOW impression
+    // If no state, auto-load sample dataset
     if (state.classifiedItems.length === 0) {
       loadSampleDataset();
     } else {
@@ -70,9 +70,13 @@
       kanbanContainer: document.getElementById('kanban-container'),
       selectCalendarMonthFilter: document.getElementById('calendar-month-filter'),
 
-      // Tab 5: Export & Bridge
-      btnCopyGoogleSheets: document.getElementById('btn-copy-sheets'),
-      btnDownloadCSV: document.getElementById('btn-download-csv'),
+      // Tab 5: Exporters for User's 3 Sheets
+      btnCopySheet1: document.getElementById('btn-copy-sheet1'),
+      btnCsvSheet1: document.getElementById('btn-csv-sheet1'),
+      btnCopySheet2: document.getElementById('btn-copy-sheet2'),
+      btnCsvSheet2: document.getElementById('btn-csv-sheet2'),
+      btnCopySheet3: document.getElementById('btn-copy-sheet3'),
+      btnCsvSheet3: document.getElementById('btn-csv-sheet3'),
       btnAppsScriptModal: document.getElementById('btn-apps-script-modal'),
 
       // Modals
@@ -186,13 +190,47 @@
       });
     }
 
-    // 7. Exporter Buttons
-    if (dom.btnCopyGoogleSheets) {
-      dom.btnCopyGoogleSheets.addEventListener('click', handleCopyGoogleSheets);
+    // 7. Exporter Event Listeners for 3 Google Sheets
+    if (dom.btnCopySheet1) {
+      dom.btnCopySheet1.addEventListener('click', async () => {
+        const tsv = window.GoogleSheetsBridge.buildSheet1TSV(state.clusters);
+        const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
+        if (res.success) showToast('Copied ready for Sheet 1 (Editorial Calendar)! Paste with Ctrl+V', 'success');
+      });
+    }
+    if (dom.btnCsvSheet1) {
+      dom.btnCsvSheet1.addEventListener('click', () => {
+        const tsv = window.GoogleSheetsBridge.buildSheet1TSV(state.clusters);
+        window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Sheet1_Editorial_Calendar.csv');
+      });
     }
 
-    if (dom.btnDownloadCSV) {
-      dom.btnDownloadCSV.addEventListener('click', handleDownloadCSV);
+    if (dom.btnCopySheet2) {
+      dom.btnCopySheet2.addEventListener('click', async () => {
+        const tsv = window.GoogleSheetsBridge.buildSheet2TSV(state.classifiedItems, state.clusters);
+        const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
+        if (res.success) showToast('Copied ready for Sheet 2 (Master Keyword Mapping)! Paste with Ctrl+V', 'success');
+      });
+    }
+    if (dom.btnCsvSheet2) {
+      dom.btnCsvSheet2.addEventListener('click', () => {
+        const tsv = window.GoogleSheetsBridge.buildSheet2TSV(state.classifiedItems, state.clusters);
+        window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Sheet2_Master_Keywords.csv');
+      });
+    }
+
+    if (dom.btnCopySheet3) {
+      dom.btnCopySheet3.addEventListener('click', async () => {
+        const tsv = window.GoogleSheetsBridge.buildSheet3TSV(state.rawItems);
+        const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
+        if (res.success) showToast('Copied ready for Sheet 3 (Raw Import & Staging)! Paste with Ctrl+V', 'success');
+      });
+    }
+    if (dom.btnCsvSheet3) {
+      dom.btnCsvSheet3.addEventListener('click', () => {
+        const tsv = window.GoogleSheetsBridge.buildSheet3TSV(state.rawItems);
+        window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Sheet3_Raw_Staging.csv');
+      });
     }
 
     if (dom.btnAppsScriptModal) {
@@ -283,7 +321,7 @@
       validRows: state.rawItems.length,
       deduplicated: 0
     });
-    showToast('BrightEdge sample dataset loaded!', 'success');
+    showToast('Briants 3-Sheet dataset loaded!', 'success');
     saveStateToStorage();
   }
 
@@ -478,7 +516,7 @@
     );
   }
 
-  /* --- Modals & Exports --- */
+  /* --- Modals & Helpers --- */
   function openBriefForClusterId(clusterId) {
     const cluster = state.clusters.find(c => c.id === clusterId);
     if (cluster) openBriefModal(cluster);
@@ -514,20 +552,6 @@
     } catch (e) {
       showToast('Invalid JSON rule format.', 'error');
     }
-  }
-
-  async function handleCopyGoogleSheets() {
-    const res = await window.GoogleSheetsBridge.copyToGoogleSheetsClipboard(state.clusters);
-    if (res.success) {
-      showToast(`Copied ${res.count} clusters ready for Google Sheets (Ctrl+V)!`, 'success');
-    } else {
-      showToast('Clipboard copy failed.', 'error');
-    }
-  }
-
-  function handleDownloadCSV() {
-    window.GoogleSheetsBridge.downloadCSV(state.clusters);
-    showToast('CSV export started!', 'success');
   }
 
   function openScriptModal() {
