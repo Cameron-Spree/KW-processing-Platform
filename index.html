@@ -24,7 +24,7 @@
         <div class="brand-logo">B</div>
         <div class="brand-titles">
           <h1>Briants SEO Content Pipeline <span class="badge-tag">HIGH SPEED</span></h1>
-          <p>BrightEdge High-Speed Ingestion • Data Enrichment • Auto Tagging • Master Raw Sheet Sync</p>
+          <p>BrightEdge High-Speed Ingestion • Data Enrichment • Topic Mindmap Architecture • Master Sheet Sync</p>
         </div>
       </div>
 
@@ -62,7 +62,7 @@
         <span class="tab-num">2</span> Enriched Keyword Table
       </button>
       <button class="nav-tab" data-tab="clusters">
-        <span class="tab-num">3</span> Pillar & Cluster Preview
+        <span class="tab-num">3</span> Topic Mindmap Architecture 🗺️
       </button>
       <button class="nav-tab" data-tab="calendar">
         <span class="tab-num">4</span> 3-Month Editorial Calendar
@@ -182,21 +182,20 @@
       </section>
 
       <!-- ===================================================================
-           TAB 3: PILLAR & CLUSTER GROUPING PREVIEW
+           TAB 3: TOPIC ARCHITECTURE & MINDMAP VISUALIZER
            =================================================================== -->
       <section class="tab-panel" id="tab-clusters">
         <div class="card">
           <div class="card-header">
             <div>
-              <h2 class="card-title"><span>🌳</span> Automated Pillar & Cluster Preview</h2>
-              <p class="card-subtitle">Groups long-tail keywords under high-volume seed terms and calculates combined search volume.</p>
+              <h2 class="card-title"><span>🗺️</span> Semantic Topic Architecture & Mindmap Visualizer</h2>
+              <p class="card-subtitle">Heuristically categorizes seed topics into 6 core sub-themes (Buying Guides, Maintenance, Components, Safety, Brands, Use Cases).</p>
             </div>
-            <input type="text" class="input-search" id="cluster-search" placeholder="Search topic clusters..." style="max-width: 280px;">
           </div>
 
-          <!-- Dynamic Clusters Grid -->
-          <div class="clusters-grid" id="clusters-grid">
-            <!-- Dynamic Cluster Cards -->
+          <!-- Mindmap Render Canvas Container -->
+          <div id="mindmap-canvas-container">
+            <!-- Dynamic Mindmap Tree SVG -->
           </div>
         </div>
       </section>
@@ -227,7 +226,7 @@
       </section>
 
       <!-- ===================================================================
-           TAB 5: MASTER RAW KEYWORD SHEET SYNC (STREAMLINED & ULTRA-FAST)
+           TAB 5: MASTER RAW KEYWORD SHEET SYNC
            =================================================================== -->
       <section class="tab-panel" id="tab-export">
         <div class="card">
@@ -354,6 +353,8 @@
   <script src="js/csvCleaner.js"></script>
   <script src="js/taxonomyEngine.js"></script>
   <script src="js/clusteringEngine.js"></script>
+  <script src="js/subClusterEngine.js"></script>
+  <script src="js/mindmapRenderer.js"></script>
   <script src="js/calendarManager.js"></script>
   <script src="js/googleSheetsBridge.js"></script>
   <script src="js/app.js"></script>

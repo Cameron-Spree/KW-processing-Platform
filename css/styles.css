@@ -65,7 +65,7 @@
   --transition-normal: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Optional Dark Theme Switcher if requested */
+/* Dark Theme Override */
 [data-theme="dark"] {
   --bg-base: #000000;
   --bg-surface: rgba(30, 30, 32, 0.75);
@@ -91,7 +91,6 @@
 body {
   font-family: var(--font-family);
   background-color: var(--bg-base);
-  /* Multi-layered Apple Ambient Color Glows */
   background-image: 
     radial-gradient(at 10% 10%, rgba(16, 185, 129, 0.12) 0px, transparent 40%),
     radial-gradient(at 90% 15%, rgba(0, 122, 255, 0.12) 0px, transparent 40%),
@@ -332,9 +331,6 @@ button, input, select, textarea {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
 }
-.btn-primary:active {
-  transform: translateY(0);
-}
 
 .btn-secondary {
   background: rgba(255, 255, 255, 0.8);
@@ -420,7 +416,7 @@ button, input, select, textarea {
   margin-top: 0.25rem;
 }
 
-/* --- Module 1: Apple Frosted Dropzone --- */
+/* --- Module 1: Dropzone & Stats --- */
 .dropzone-container {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -520,7 +516,6 @@ button, input, select, textarea {
   margin-top: 0.3rem;
 }
 
-/* --- Import Stats Summary Bar --- */
 .import-summary-bar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -557,7 +552,7 @@ button, input, select, textarea {
   letter-spacing: 0.05em;
 }
 
-/* --- Module 2: Data Tables (Clean Glass Table) --- */
+/* --- Module 2: Data Tables --- */
 .table-toolbar {
   display: flex;
   align-items: center;
@@ -655,7 +650,6 @@ button, input, select, textarea {
   background: rgba(255, 255, 255, 0.85);
 }
 
-/* --- Badges & Intent Chips --- */
 .badge-dept {
   display: inline-flex;
   align-items: center;
@@ -691,7 +685,168 @@ button, input, select, textarea {
 .intent-transactional { background: var(--intent-trans-bg); color: var(--intent-trans-color); }
 .intent-mixed { background: var(--intent-mixed-bg); color: var(--intent-mixed-color); }
 
-/* --- Module 3: Cluster Cards Grid --- */
+/* --- Module 3: Mindmap & Cluster Architecture --- */
+.mindmap-canvas-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mindmap-controls-bar {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: var(--shadow-glass);
+}
+
+.active-heatmap {
+  background: var(--primary-light) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+.mindmap-tree-container {
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  overflow-x: auto;
+}
+
+.mindmap-layout-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+}
+
+.mindmap-root-node {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  padding: 1.25rem 2.25rem;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.mindmap-root-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.mindmap-root-meta {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.mindmap-branches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.mindmap-branch-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  border: 2px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-glass);
+  transition: all var(--transition-normal);
+}
+
+.mindmap-branch-card:hover {
+  background: #ffffff;
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.mindmap-branch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mindmap-branch-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mindmap-branch-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.75rem 0;
+}
+
+.mindmap-leaf-nodes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.mindmap-leaf-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  transition: all var(--transition-fast);
+}
+
+.mindmap-leaf-node:hover {
+  background: rgba(16, 185, 129, 0.08);
+  color: var(--primary);
+}
+
+.leaf-title {
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.leaf-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Heatmap States */
+.heat-high { background: rgba(16, 185, 129, 0.15) !important; border-color: rgba(16, 185, 129, 0.4) !important; }
+.heat-med { background: rgba(245, 158, 11, 0.15) !important; border-color: rgba(245, 158, 11, 0.4) !important; }
+.heat-low { background: rgba(100, 116, 139, 0.08) !important; }
+
+/* Cluster Cards Grid */
 .clusters-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -732,7 +887,6 @@ button, input, select, textarea {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-main);
-  letter-spacing: -0.01em;
 }
 
 .cluster-metrics-row {
@@ -743,7 +897,6 @@ button, input, select, textarea {
   padding: 0.65rem 0.9rem;
   background: rgba(245, 245, 247, 0.8);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .cluster-metric-item {
@@ -779,7 +932,6 @@ button, input, select, textarea {
   background: rgba(0, 0, 0, 0.04);
   border-radius: var(--radius-pill);
   color: var(--text-muted);
-  font-weight: 500;
 }
 
 .cluster-proposed-title {
@@ -794,7 +946,7 @@ button, input, select, textarea {
   line-height: 1.4;
 }
 
-/* --- Module 4: 3-Month Editorial Kanban Board (Apple Glass Columns) --- */
+/* --- Module 4: Kanban Board --- */
 .kanban-board-wrapper {
   overflow-x: auto;
   padding-bottom: 1.25rem;
@@ -877,11 +1029,6 @@ button, input, select, textarea {
   transform: translateY(-2px);
 }
 
-.kanban-card.dragging {
-  opacity: 0.5;
-  border-color: var(--apple-blue);
-}
-
 .kanban-card-title {
   font-size: 0.9rem;
   font-weight: 700;
@@ -908,54 +1055,7 @@ button, input, select, textarea {
   font-weight: 700;
 }
 
-/* --- Module 5: Exporter Grid --- */
-.export-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
-}
-
-.export-card {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: 1.75rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  box-shadow: var(--shadow-glass);
-}
-
-.export-card-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(0, 122, 255, 0.12) 100%);
-  color: var(--primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-}
-
-.export-card h3 {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 0.4rem;
-}
-
-.export-card p {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-}
-
-/* --- Apple Sheet / Modal Dialogs --- */
+/* --- Modals & Toasts --- */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -1028,7 +1128,6 @@ button, input, select, textarea {
   gap: 0.85rem;
 }
 
-/* --- Writer Brief Preview --- */
 .brief-content {
   font-family: var(--font-family);
   background: #ffffff;
@@ -1042,7 +1141,6 @@ button, input, select, textarea {
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02);
 }
 
-/* --- Apple Toast Capsules --- */
 .toast-container {
   position: fixed;
   bottom: 2rem;
@@ -1075,7 +1173,6 @@ button, input, select, textarea {
   to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-/* --- Responsive Adjustments --- */
 @media (max-width: 900px) {
   .dropzone-container {
     grid-template-columns: 1fr;

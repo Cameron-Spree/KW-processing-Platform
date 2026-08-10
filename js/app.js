@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO-to-Content Pipeline
- * High-Speed Batch Engine
+ * High-Speed Batch Engine with Mindmap Architecture
  */
 
 (function () {
@@ -67,9 +67,8 @@
       selectIntentFilter: document.getElementById('taxonomy-intent-filter'),
       btnConfigRules: document.getElementById('btn-config-rules'),
 
-      // Tab 3: Clusters
-      clustersGrid: document.getElementById('clusters-grid'),
-      inputClusterSearch: document.getElementById('cluster-search'),
+      // Tab 3: Mindmap Architecture
+      mindmapCanvasContainer: document.getElementById('mindmap-canvas-container'),
 
       // Tab 4: Editorial Calendar
       kanbanContainer: document.getElementById('kanban-container'),
@@ -180,12 +179,7 @@
       dom.btnSaveRules.addEventListener('click', handleSaveRules);
     }
 
-    // 5. Cluster Search
-    if (dom.inputClusterSearch) {
-      dom.inputClusterSearch.addEventListener('input', () => renderClusterGrid());
-    }
-
-    // 6. Calendar Month Filter
+    // 5. Calendar Month Filter
     if (dom.selectCalendarMonthFilter) {
       dom.selectCalendarMonthFilter.addEventListener('change', (e) => {
         state.filters.month = e.target.value;
@@ -193,7 +187,7 @@
       });
     }
 
-    // 7. Auto-Save Master Webhook URL
+    // 6. Auto-Save Master Webhook URL
     if (dom.urlMaster) {
       dom.urlMaster.addEventListener('input', (e) => {
         state.webhooks.masterUrl = e.target.value.trim();
@@ -279,7 +273,7 @@
     });
 
     if (tabId === 'taxonomy') renderTaxonomyTable();
-    if (tabId === 'clusters') renderClusterGrid();
+    if (tabId === 'clusters') renderMindmapView();
     if (tabId === 'calendar') renderKanbanBoard();
   }
 
@@ -346,7 +340,7 @@
   function updateUI() {
     updateHeaderMetrics();
     renderTaxonomyTable();
-    renderClusterGrid();
+    renderMindmapView();
     renderKanbanBoard();
   }
 
@@ -433,65 +427,31 @@
     dom.taxonomyTableBody.innerHTML = rowsHtml;
   }
 
-  /* --- Tab 3: Cluster Grid --- */
-  function renderClusterGrid() {
-    if (!dom.clustersGrid) return;
+  /* --- Tab 3: Mindmap Renderer --- */
+  function renderMindmapView() {
+    if (!dom.mindmapCanvasContainer || !window.SubClusterEngine || !window.MindmapRenderer) return;
 
-    const query = (dom.inputClusterSearch ? dom.inputClusterSearch.value : '').toLowerCase();
+    const currentFilter = window.currentMindmapFilter || 'chainsaw';
+    const treeData = window.SubClusterEngine.buildTopicTree(state.classifiedItems, currentFilter);
 
-    const filteredClusters = state.clusters.filter(c => {
-      return !query || c.headTerm.toLowerCase().includes(query) || (c.proposedTitle && c.proposedTitle.toLowerCase().includes(query));
-    });
+    window.MindmapRenderer.renderMindmap(
+      treeData,
+      dom.mindmapCanvasContainer,
+      (branch) => {
+        // Push Branch to Editorial Kanban Board
+        if (!branch || !branch.nodes) return;
+        const newClusters = window.ClusteringEngine.generateClusters(branch.nodes);
+        newClusters.forEach(nc => {
+          nc.proposedTitle = `[${branch.label}] ${nc.proposedTitle}`;
+          nc.assignedMonth = 'Month 1';
+          nc.status = 'Briefing';
+          state.clusters.unshift(nc);
+        });
 
-    if (filteredClusters.length === 0) {
-      dom.clustersGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--text-muted);">No semantic clusters found.</div>`;
-      return;
-    }
-
-    const cardsHtml = filteredClusters.map(c => {
-      const deptClass = 'dept-' + (c.department || '').toLowerCase().replace(/[^a-z]/g, '');
-      const intentClass = 'intent-' + (c.intent || 'informational').toLowerCase().split('/')[0];
-
-      const kwTags = (c.keywords || [])
-        .slice(0, 6)
-        .map(k => `<span class="cluster-kw-tag">${escapeHtml(k.Keyword)}</span>`)
-        .join('');
-
-      return `
-        <div class="cluster-card">
-          <div>
-            <div class="cluster-card-header">
-              <span class="cluster-head-term">${escapeHtml(c.headTerm)}</span>
-              <span class="badge-dept ${deptClass}">${c.department}</span>
-            </div>
-            <div class="cluster-proposed-title">" ${escapeHtml(c.proposedTitle)} "</div>
-            <div class="cluster-metrics-row">
-              <div class="cluster-metric-item">
-                <span>Total Volume</span>
-                <span>${(c.totalVolume || 0).toLocaleString()}</span>
-              </div>
-              <div class="cluster-metric-item">
-                <span>Avg CPC</span>
-                <span>£${(c.avgCPC || 0).toFixed(2)}</span>
-              </div>
-              <div class="cluster-metric-item">
-                <span>Priority</span>
-                <span style="color:#d97706;">${c.priorityScore}</span>
-              </div>
-            </div>
-            <div class="cluster-kw-list">
-              ${kwTags}
-            </div>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border-subtle);">
-            <span class="badge-intent ${intentClass}">${c.intent}</span>
-            <button class="btn btn-outline btn-sm" onclick="window.BriantsApp.openBriefForClusterId('${c.id}')">View Brief 📄</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    dom.clustersGrid.innerHTML = cardsHtml;
+        saveStateToStorage();
+        showToast(`Pushed ${newClusters.length} topic clusters from "${branch.label}" to Editorial Kanban!`, 'success');
+      }
+    );
   }
 
   /* --- Tab 4: Editorial Kanban Board --- */
@@ -633,6 +593,7 @@
 
   // Global Exports for inline onclicks
   window.BriantsApp = {
-    openBriefForClusterId: openBriefForClusterId
+    openBriefForClusterId: openBriefForClusterId,
+    refreshMindmap: renderMindmapView
   };
 })();
