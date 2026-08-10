@@ -1,5 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
+ * Features Full Browser LocalStorage Persistence for Custom Categories, Micro-Topics, and Keyword Reassignments.
  */
 
 (function () {
@@ -586,7 +587,8 @@
         const kw = e.target.dataset.kw;
         const targetBranchId = e.target.value;
         window.SubClusterEngine.reassignKeyword(kw, targetBranchId);
-        showToast(`Reassigned "${kw}"!`, 'success');
+        saveStateToStorage();
+        showToast(`Reassigned "${kw}"! Saved in browser 💾`, 'success');
         refreshPillarAndMindmap();
       });
     });
@@ -597,6 +599,7 @@
       btn.addEventListener('click', (e) => {
         const kw = e.target.dataset.kw;
         window.SubClusterEngine.reassignKeyword(kw, 'unclassified');
+        saveStateToStorage();
         showToast(`Moved "${kw}" to Unassigned Queue 🗑️`, 'info');
         refreshPillarAndMindmap();
       });
@@ -606,7 +609,8 @@
   function handleAutofillPillar() {
     if (!state.activePillarBranch) return;
     const count = window.SubClusterEngine.autoFillBranch(state.activePillarBranch.id);
-    showToast(`Auto-populated "${state.activePillarBranch.label}" with ${count} matching keywords & micro-topics! ⚡`, 'success');
+    saveStateToStorage();
+    showToast(`Auto-populated "${state.activePillarBranch.label}" with ${count} matching keywords! Saved 💾`, 'success');
     refreshPillarAndMindmap();
   }
 
@@ -616,6 +620,7 @@
     const count = branch.nodes.length;
 
     window.SubClusterEngine.bulkDiscardBranch(branch.nodes);
+    saveStateToStorage();
     showToast(`Cleared ${count} keywords from "${branch.label}" to Unassigned Queue 🧹`, 'success');
     refreshPillarAndMindmap();
   }
@@ -650,9 +655,10 @@
     if (!state.activeReassignKw) return;
     const targetBranchId = dom.reassignBranchSelect.value;
     window.SubClusterEngine.reassignKeyword(state.activeReassignKw, targetBranchId);
+    saveStateToStorage();
     closeModal(dom.reassignModal);
     renderMindmapView();
-    showToast(`Reassigned "${state.activeReassignKw}" successfully!`, 'success');
+    showToast(`Reassigned "${state.activeReassignKw}" successfully! Saved 💾`, 'success');
   }
 
   function handleSaveNewCat() {
@@ -667,13 +673,14 @@
     }
 
     const res = window.SubClusterEngine.addCustomCategory(name, icon, tokens, autoFill);
+    saveStateToStorage();
     closeModal(dom.newCategoryModal);
 
     dom.inputCatName.value = '';
     dom.inputCatTokens.value = '';
 
     renderMindmapView();
-    showToast(`Created category "${name}", auto-filled ${res.autoFilledCount} keywords & ${res.microTopicsCount} Level-3 micro-topics! ⚡`, 'success');
+    showToast(`Created category "${name}", auto-filled ${res.autoFilledCount} keywords & ${res.microTopicsCount} micro-topics! Saved 💾`, 'success');
   }
 
   /* --- Modals & Helpers --- */
@@ -688,8 +695,9 @@
       const parsed = JSON.parse(dom.rulesTextarea.value);
       window.TaxonomyEngine.updateRules(parsed);
       runClassificationAndClustering();
+      saveStateToStorage();
       closeModal(dom.ruleModal);
-      showToast('Taxonomy rules updated!', 'success');
+      showToast('Taxonomy rules updated! Saved 💾', 'success');
     } catch (e) {
       showToast('Invalid JSON rule format.', 'error');
     }
@@ -737,10 +745,12 @@
 
   function saveStateToStorage() {
     try {
+      const engineState = window.SubClusterEngine ? window.SubClusterEngine.exportEngineState() : null;
       localStorage.setItem('briants_seo_pipeline_state', JSON.stringify({
         rawItems: state.rawItems,
         clusters: state.clusters,
-        webhooks: state.webhooks
+        webhooks: state.webhooks,
+        engineState: engineState
       }));
     } catch (e) {}
   }
@@ -750,6 +760,9 @@
       const saved = localStorage.getItem('briants_seo_pipeline_state');
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (parsed.engineState && window.SubClusterEngine) {
+          window.SubClusterEngine.importEngineState(parsed.engineState);
+        }
         if (parsed.rawItems && parsed.rawItems.length > 0) {
           state.rawItems = parsed.rawItems;
           runClassificationAndClustering();

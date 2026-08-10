@@ -1,6 +1,6 @@
 /**
  * Enhanced Non-AI Sub-Clustering & Micro-Topic Audit Engine for Briants
- * Supports Level 2 Pillars + Level 3 Auto-Generated Micro-Topics for Custom Categories.
+ * Features Full State Serialization & LocalStorage Persistence across browser refreshes!
  */
 
 window.SubClusterEngine = (function () {
@@ -277,14 +277,22 @@ window.SubClusterEngine = (function () {
       };
     });
 
-    subThemeDefinitions.push({
-      id: id,
-      label: categoryName,
-      icon: categoryIcon,
-      color: randomColor,
-      tokens: cleanTokens,
-      microTopics: autoMicroTopics
-    });
+    // Check if custom category already exists
+    const existingIdx = subThemeDefinitions.findIndex(st => st.id === id);
+    if (existingIdx >= 0) {
+      subThemeDefinitions[existingIdx].label = categoryName;
+      subThemeDefinitions[existingIdx].tokens = cleanTokens;
+      subThemeDefinitions[existingIdx].microTopics = autoMicroTopics;
+    } else {
+      subThemeDefinitions.push({
+        id: id,
+        label: categoryName,
+        icon: categoryIcon,
+        color: randomColor,
+        tokens: cleanTokens,
+        microTopics: autoMicroTopics
+      });
+    }
 
     let autoFilledCount = 0;
     if (autoFill && cleanTokens.length > 0 && rawDatasetCache.length > 0) {
@@ -337,12 +345,37 @@ window.SubClusterEngine = (function () {
     return subThemeDefinitions;
   }
 
+  /**
+   * Serialize Engine State for LocalStorage persistence.
+   */
+  function exportEngineState() {
+    return {
+      subThemeDefinitions: subThemeDefinitions,
+      manualOverrides: Array.from(manualOverrides.entries())
+    };
+  }
+
+  /**
+   * Deserialize Engine State from LocalStorage.
+   */
+  function importEngineState(savedState) {
+    if (!savedState) return;
+    if (savedState.subThemeDefinitions && Array.isArray(savedState.subThemeDefinitions)) {
+      subThemeDefinitions = savedState.subThemeDefinitions;
+    }
+    if (savedState.manualOverrides && Array.isArray(savedState.manualOverrides)) {
+      manualOverrides = new Map(savedState.manualOverrides);
+    }
+  }
+
   return {
     buildTopicTree: buildTopicTree,
     bulkDiscardBranch: bulkDiscardBranch,
     addCustomCategory: addCustomCategory,
     autoFillBranch: autoFillBranch,
     reassignKeyword: reassignKeyword,
-    getSubThemes: getSubThemes
+    getSubThemes: getSubThemes,
+    exportEngineState: exportEngineState,
+    importEngineState: importEngineState
   };
 })();
