@@ -20,7 +20,8 @@
       masterUrl: ''
     },
     executionTimeMs: 0,
-    activeReassignKw: null
+    activeReassignKw: null,
+    activePillarBranch: null
   };
 
   // DOM Elements Cache
@@ -80,6 +81,14 @@
       btnCloseRuleModal: document.getElementById('btn-close-rule-modal'),
       btnSaveRules: document.getElementById('btn-save-rules'),
       rulesTextarea: document.getElementById('rules-textarea'),
+
+      pillarEditorModal: document.getElementById('pillar-editor-modal'),
+      btnClosePillarEditor: document.getElementById('btn-close-pillar-editor'),
+      pillarEditorIcon: document.getElementById('pillar-editor-icon'),
+      pillarEditorTitle: document.getElementById('pillar-editor-title'),
+      pillarEditorSubtitle: document.getElementById('pillar-editor-subtitle'),
+      inputPillarSearch: document.getElementById('input-pillar-search'),
+      pillarEditorTbody: document.getElementById('pillar-editor-tbody'),
 
       reassignModal: document.getElementById('reassign-modal'),
       btnCloseReassignModal: document.getElementById('btn-close-reassign-modal'),
@@ -181,7 +190,15 @@
       dom.btnSaveRules.addEventListener('click', handleSaveRules);
     }
 
-    // 5. Reassign Modal Controls
+    // 5. Pillar Editor Modal Controls
+    if (dom.btnClosePillarEditor) {
+      dom.btnClosePillarEditor.addEventListener('click', () => closeModal(dom.pillarEditorModal));
+    }
+    if (dom.inputPillarSearch) {
+      dom.inputPillarSearch.addEventListener('input', () => renderPillarEditorRows());
+    }
+
+    // 6. Reassign Modal Controls
     if (dom.btnCloseReassignModal) {
       dom.btnCloseReassignModal.addEventListener('click', () => closeModal(dom.reassignModal));
     }
@@ -189,7 +206,7 @@
       dom.btnSaveReassign.addEventListener('click', handleSaveReassign);
     }
 
-    // 6. New Custom Category Modal Controls
+    // 7. New Custom Category Modal Controls
     if (dom.btnCloseCatModal) {
       dom.btnCloseCatModal.addEventListener('click', () => closeModal(dom.newCategoryModal));
     }
@@ -197,7 +214,7 @@
       dom.btnSaveNewCat.addEventListener('click', handleSaveNewCat);
     }
 
-    // 7. Auto-Save Master Webhook URL
+    // 8. Auto-Save Master Webhook URL
     if (dom.urlMaster) {
       dom.urlMaster.addEventListener('input', (e) => {
         state.webhooks.masterUrl = e.target.value.trim();
@@ -427,7 +444,7 @@
     dom.taxonomyTableBody.innerHTML = rowsHtml;
   }
 
-  /* --- Tab 3: Mindmap Renderer & Audit Handlers --- */
+  /* --- Tab 3: Mindmap Renderer & Pillar Editor --- */
   function renderMindmapView() {
     if (!dom.mindmapCanvasContainer || !window.SubClusterEngine || !window.MindmapRenderer) return;
 
@@ -438,8 +455,88 @@
       treeData,
       dom.mindmapCanvasContainer,
       (kwStr) => openReassignModal(kwStr),
-      () => openModal(dom.newCategoryModal)
+      () => openModal(dom.newCategoryModal),
+      (branch) => openPillarEditorModal(branch)
     );
+  }
+
+  /* --- Full-Screen Pillar Editor Modal Logic --- */
+  function openPillarEditorModal(branch) {
+    state.activePillarBranch = branch;
+    dom.pillarEditorIcon.textContent = branch.icon || '📁';
+    dom.pillarEditorTitle.textContent = `${branch.label} Editor`;
+    dom.pillarEditorSubtitle.textContent = `Auditing ${branch.nodes.length} keywords • Total Vol: ${(branch.branchVolume || 0).toLocaleString()} • ✓ ${branch.exactCount} Exact | ⚡ ${branch.bestFitCount} Best Fit`;
+
+    if (dom.inputPillarSearch) dom.inputPillarSearch.value = '';
+    renderPillarEditorRows();
+    openModal(dom.pillarEditorModal);
+  }
+
+  function renderPillarEditorRows() {
+    if (!state.activePillarBranch || !dom.pillarEditorTbody) return;
+
+    const query = (dom.inputPillarSearch ? dom.inputPillarSearch.value : '').toLowerCase().trim();
+    const branch = state.activePillarBranch;
+    const subThemes = window.SubClusterEngine.getSubThemes();
+
+    const filtered = branch.nodes.filter(n => !query || n.Keyword.toLowerCase().includes(query));
+
+    if (filtered.length === 0) {
+      dom.pillarEditorTbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+            No keywords found matching "${escapeHtml(query)}" in this pillar.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const rowsHtml = filtered.map((item, idx) => {
+      const fitBadgeClass = 'badge-fit-' + (item.fitType || 'unclassified');
+
+      const optionsHtml = subThemes.map(st => `
+        <option value="${st.id}" ${st.id === branch.id ? 'selected' : ''}>${st.icon} ${st.label}</option>
+      `).join('');
+
+      return `
+        <tr>
+          <td><strong>${idx + 1}</strong></td>
+          <td><strong style="color:var(--text-main); font-size:0.9rem;">${escapeHtml(item.Keyword)}</strong></td>
+          <td><strong>${(item['Search Volume'] || 0).toLocaleString()}</strong></td>
+          <td>£${(item.CPC || 0).toFixed(2)}</td>
+          <td><span class="badge-fit ${fitBadgeClass}">${item.fitLabel || 'Match'}</span></td>
+          <td>
+            <select class="select-filter select-inline-reassign" data-kw="${escapeHtml(item.Keyword)}" style="font-size:0.78rem; padding:0.25rem 0.65rem; width:100%;">
+              ${optionsHtml}
+            </select>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    dom.pillarEditorTbody.innerHTML = rowsHtml;
+
+    // Wire inline dropdown reassignments
+    const inlineSelects = dom.pillarEditorTbody.querySelectorAll('.select-inline-reassign');
+    inlineSelects.forEach(select => {
+      select.addEventListener('change', (e) => {
+        const kw = e.target.dataset.kw;
+        const targetBranchId = e.target.value;
+        window.SubClusterEngine.reassignKeyword(kw, targetBranchId);
+        showToast(`Reassigned "${kw}"!`, 'success');
+        renderMindmapView();
+        
+        // Refresh active pillar view
+        const currentFilter = window.currentMindmapFilter || 'chainsaw';
+        const updatedTree = window.SubClusterEngine.buildTopicTree(state.classifiedItems, currentFilter);
+        const updatedBranch = (updatedTree.branches || []).find(b => b.id === branch.id);
+        if (updatedBranch) {
+          state.activePillarBranch = updatedBranch;
+          renderPillarEditorRows();
+        }
+      });
+    });
   }
 
   function openReassignModal(kwStr) {

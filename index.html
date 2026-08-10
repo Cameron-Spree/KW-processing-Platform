@@ -186,7 +186,7 @@
           <div class="card-header">
             <div>
               <h2 class="card-title"><span>🗺️</span> Semantic Topic Architecture & Mindmap Visualizer</h2>
-              <p class="card-subtitle">Heuristically categorizes seed topics into sub-themes (Buying Guides, Maintenance, Components, Safety, Brands, Use Cases).</p>
+              <p class="card-subtitle">Heuristically categorizes seed topics into sub-themes. Click any pillar header to expand into Full-Screen Editor!</p>
             </div>
           </div>
 
@@ -280,7 +280,50 @@
     </div>
   </div>
 
-  <!-- Modal 2: Reassign Keyword Category Modal -->
+  <!-- Modal 2: FULL-SCREEN PILLAR EDITOR MODAL -->
+  <div class="modal-backdrop" id="pillar-editor-modal">
+    <div class="modal-dialog full-screen">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <span id="pillar-editor-icon" style="font-size:1.4rem;">🛒</span>
+          <div>
+            <h3 class="modal-title" id="pillar-editor-title">Pillar Editor</h3>
+            <p style="font-size:0.78rem; color:var(--text-muted);" id="pillar-editor-subtitle">Review, audit, and reassign keywords belonging to this pillar branch.</p>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <input type="text" class="input-search" id="input-pillar-search" placeholder="Search keywords in this pillar..." style="font-size:0.8rem; padding:0.35rem 0.85rem; min-width:220px;">
+          <button class="btn btn-icon" id="btn-close-pillar-editor">✕</button>
+        </div>
+      </div>
+      
+      <div class="modal-body" style="padding:1.25rem;">
+        <div class="table-responsive" style="max-height: calc(88vh - 160px);">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:50px;">#</th>
+                <th>Keyword</th>
+                <th>Search Volume</th>
+                <th>Est. CPC (£)</th>
+                <th>Match Type</th>
+                <th style="width:240px;">Reassign Sub-Theme Branch</th>
+              </tr>
+            </thead>
+            <tbody id="pillar-editor-tbody">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('btn-close-pillar-editor').click();">Done / Close Editor</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Reassign Keyword Category Modal -->
   <div class="modal-backdrop" id="reassign-modal">
     <div class="modal-dialog" style="max-width:540px;">
       <div class="modal-header">
@@ -302,7 +345,7 @@
     </div>
   </div>
 
-  <!-- Modal 3: Create Custom Category Modal -->
+  <!-- Modal 4: Create Custom Category Modal -->
   <div class="modal-backdrop" id="new-category-modal">
     <div class="modal-dialog" style="max-width:540px;">
       <div class="modal-header">
@@ -332,7 +375,7 @@
     </div>
   </div>
 
-  <!-- Modal 4: Google Apps Script Code -->
+  <!-- Modal 5: Google Apps Script Code -->
   <div class="modal-backdrop" id="script-modal">
     <div class="modal-dialog" style="max-width:780px;">
       <div class="modal-header">

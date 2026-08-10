@@ -826,6 +826,14 @@ button, input, select, textarea {
   transform: translateY(-2px);
 }
 
+.clickable-header {
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+.clickable-header:hover {
+  opacity: 0.85;
+}
+
 .mindmap-branch-header {
   display: flex;
   align-items: center;
@@ -934,6 +942,13 @@ button, input, select, textarea {
   box-shadow: var(--shadow-modal);
   transform: scale(0.96) translateY(10px);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-dialog.full-screen {
+  max-width: 94vw;
+  width: 94vw;
+  max-height: 90vh;
+  height: 90vh;
 }
 
 .modal-backdrop.active .modal-dialog {

@@ -1,5 +1,5 @@
 /**
- * Apple Glass SVG Mindmap Tree Renderer with Keyword Audit & Reassignment Controls
+ * Apple Glass SVG Mindmap Tree Renderer with Full Pillar Editor Trigger
  */
 
 window.MindmapRenderer = (function () {
@@ -12,7 +12,7 @@ window.MindmapRenderer = (function () {
   /**
    * Main render function.
    */
-  function renderMindmap(treeData, containerEl, onReassignKw, onCreateCategory) {
+  function renderMindmap(treeData, containerEl, onReassignKw, onCreateCategory, onExpandPillar) {
     if (!containerEl || !treeData) return;
     currentTreeData = treeData;
 
@@ -82,7 +82,7 @@ window.MindmapRenderer = (function () {
     treeContainer.className = 'mindmap-tree-container';
     treeContainer.id = 'mindmap-svg-root';
 
-    const treeMarkup = buildTreeDOM(treeData, onReassignKw);
+    const treeMarkup = buildTreeDOM(treeData, onReassignKw, onExpandPillar);
     treeContainer.appendChild(treeMarkup);
     wrapper.appendChild(treeContainer);
 
@@ -94,7 +94,7 @@ window.MindmapRenderer = (function () {
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
         activeAuditFilter = chip.dataset.filter;
-        renderMindmap(treeData, containerEl, onReassignKw, onCreateCategory);
+        renderMindmap(treeData, containerEl, onReassignKw, onCreateCategory, onExpandPillar);
       });
     });
 
@@ -119,7 +119,7 @@ window.MindmapRenderer = (function () {
     if (btnHeatmap) {
       btnHeatmap.addEventListener('click', () => {
         heatmapEnabled = !heatmapEnabled;
-        renderMindmap(treeData, containerEl, onReassignKw, onCreateCategory);
+        renderMindmap(treeData, containerEl, onReassignKw, onCreateCategory, onExpandPillar);
       });
     }
 
@@ -135,9 +135,9 @@ window.MindmapRenderer = (function () {
   }
 
   /**
-   * Build HTML Tree layout with match status indicators and edit triggers.
+   * Build HTML Tree layout with match status indicators and expand pillar editor handlers.
    */
-  function buildTreeDOM(treeData, onReassignKw) {
+  function buildTreeDOM(treeData, onReassignKw, onExpandPillar) {
     const rootBox = document.createElement('div');
     rootBox.className = 'mindmap-layout-tree';
 
@@ -173,12 +173,14 @@ window.MindmapRenderer = (function () {
       branchCard.style.borderColor = branch.color;
 
       branchCard.innerHTML = `
-        <div class="mindmap-branch-header">
+        <div class="mindmap-branch-header clickable-header" title="Click to open Full-Screen Pillar Editor">
           <div class="mindmap-branch-title">
             <span>${branch.icon}</span>
             <strong>${escapeHtml(branch.label)}</strong>
           </div>
-          <span class="badge-dept" style="font-size:0.68rem; background:rgba(0,0,0,0.06);">${branch.nodes.length} KWs</span>
+          <button class="btn btn-outline btn-sm btn-expand-pillar" style="font-size:0.72rem; padding:0.2rem 0.6rem;">
+            Expand Editor 🔍
+          </button>
         </div>
 
         <div class="mindmap-branch-stats">
@@ -205,6 +207,18 @@ window.MindmapRenderer = (function () {
           }).join('')}
         </div>
       `;
+
+      // Header & Expand Button Click Handlers
+      const expandBtn = branchCard.querySelector('.btn-expand-pillar');
+      const headerEl = branchCard.querySelector('.mindmap-branch-header');
+
+      const triggerExpand = (e) => {
+        e.stopPropagation();
+        if (onExpandPillar) onExpandPillar(branch);
+      };
+
+      if (expandBtn) expandBtn.addEventListener('click', triggerExpand);
+      if (headerEl) headerEl.addEventListener('click', triggerExpand);
 
       // Wire Reassign Buttons
       const reassignBtns = branchCard.querySelectorAll('.btn-reassign-kw');
