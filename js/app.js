@@ -490,7 +490,6 @@
   function renderMicroTopicsBar(branch) {
     if (!dom.pillarMicroTopicsBar) return;
 
-    const microTopics = branch.microTopics || [];
     const microCounts = new Map();
 
     (branch.nodes || []).forEach(n => {
@@ -607,7 +606,7 @@
   function handleAutofillPillar() {
     if (!state.activePillarBranch) return;
     const count = window.SubClusterEngine.autoFillBranch(state.activePillarBranch.id);
-    showToast(`Auto-populated "${state.activePillarBranch.label}" with ${count} matching keywords! ⚡`, 'success');
+    showToast(`Auto-populated "${state.activePillarBranch.label}" with ${count} matching keywords & micro-topics! ⚡`, 'success');
     refreshPillarAndMindmap();
   }
 
@@ -674,7 +673,7 @@
     dom.inputCatTokens.value = '';
 
     renderMindmapView();
-    showToast(`Created category "${name}" and auto-filled ${res.autoFilledCount} matching keywords! ⚡`, 'success');
+    showToast(`Created category "${name}", auto-filled ${res.autoFilledCount} keywords & ${res.microTopicsCount} Level-3 micro-topics! ⚡`, 'success');
   }
 
   /* --- Modals & Helpers --- */

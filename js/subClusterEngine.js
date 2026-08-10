@@ -1,6 +1,6 @@
 /**
  * Enhanced Non-AI Sub-Clustering & Micro-Topic Audit Engine for Briants
- * Features Auto-Populating Custom Categories, Level 2 Pillars + Level 3 Micro-Topics.
+ * Supports Level 2 Pillars + Level 3 Auto-Generated Micro-Topics for Custom Categories.
  */
 
 window.SubClusterEngine = (function () {
@@ -235,7 +235,7 @@ window.SubClusterEngine = (function () {
   }
 
   function assignMicroTopic(kw, branch) {
-    if (!branch || !branch.microTopics) return 'General';
+    if (!branch || !branch.microTopics || branch.microTopics.length === 0) return 'General';
     for (const micro of branch.microTopics) {
       for (const token of micro.tokens) {
         if (kw.includes(token)) {
@@ -259,7 +259,7 @@ window.SubClusterEngine = (function () {
   }
 
   /**
-   * Add a user-defined custom category branch & optionally auto-fill matching keywords.
+   * Add a user-defined custom category branch & auto-generate micro-topics from trigger tokens.
    */
   function addCustomCategory(categoryName, categoryIcon = '📁', categoryTokens = [], autoFill = true) {
     const id = 'custom_' + categoryName.toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -267,13 +267,23 @@ window.SubClusterEngine = (function () {
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     const cleanTokens = categoryTokens.map(t => t.toLowerCase().trim()).filter(Boolean);
 
+    // Auto-generate micro-topic definitions from tokens
+    const autoMicroTopics = cleanTokens.map((token, idx) => {
+      const formattedLabel = token.charAt(0).toUpperCase() + token.slice(1);
+      return {
+        id: `${id}_micro_${idx}`,
+        label: `${formattedLabel} Focus`,
+        tokens: [token]
+      };
+    });
+
     subThemeDefinitions.push({
       id: id,
       label: categoryName,
       icon: categoryIcon,
       color: randomColor,
       tokens: cleanTokens,
-      microTopics: []
+      microTopics: autoMicroTopics
     });
 
     let autoFilledCount = 0;
@@ -290,11 +300,11 @@ window.SubClusterEngine = (function () {
       });
     }
 
-    return { id: id, autoFilledCount: autoFilledCount };
+    return { id: id, autoFilledCount: autoFilledCount, microTopicsCount: autoMicroTopics.length };
   }
 
   /**
-   * Auto-fill an existing branch with all matching keywords from the dataset.
+   * Auto-fill an existing branch with all matching keywords from the dataset and auto-generate micro-topics.
    */
   function autoFillBranch(branchId) {
     const branchDef = subThemeDefinitions.find(st => st.id === branchId);
