@@ -205,7 +205,7 @@
           <div class="card-header">
             <div>
               <h2 class="card-title"><span>⚡</span> Sync Enriched Dataset to Master Raw Sheet</h2>
-              <p class="card-subtitle">Pushes 16 enriched columns (including Assigned Category & Sub-Category Micro-Topics) to your Raw Keyword Sheet (Target ID: <code>1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4</code>)!</p>
+              <p class="card-subtitle">Pushes 16 enriched columns (including Sub-Category context-aware headlines & Category mappings) to your Raw Keyword Sheet (Target ID: <code>1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4</code>)!</p>
             </div>
           </div>
 
@@ -217,7 +217,7 @@
                 <div>
                   <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">📋 Option 1: 1-Click Clipboard Copy (Ctrl+V)</h3>
                   <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-                    Copies all 16 enriched columns (Keyword, Volume, CPC, Difficulty, Rank, Department, Intent, Funnel Stage, Priority, <strong>Assigned Category</strong>, <strong>Sub-Category Micro-Topic</strong>, Suggested Headline, URL, Import Date, Status, Notes) directly to your clipboard.
+                    Copies all 16 enriched columns (Keyword, Volume, CPC, Difficulty, Rank, Department, Intent, Funnel Stage, Priority, <strong>Assigned Category</strong>, <strong>Sub-Category Micro-Topic</strong>, <strong>Dynamic Headline</strong>, URL, Import Date, Status, Notes) directly to your clipboard.
                   </p>
                 </div>
                 <button class="btn btn-primary" id="btn-copy-master" style="width: 100%; padding: 0.75rem;">Copy Master Enriched Data (Ctrl+V) 📋</button>
@@ -231,9 +231,19 @@
                     Paste your Google Apps Script Web App URL below to write thousands of enriched rows with Category & Sub-Category data to your Raw Keyword Sheet tab in <strong>under 1 second</strong>!
                   </p>
                   <input type="url" class="input-search" id="url-master" placeholder="Paste Raw Sheet Webhook URL (Saved automatically)..." style="width: 100%; margin-bottom: 0.6rem;">
-                  <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">
-                    <label style="font-size:0.75rem; font-weight:700; color:var(--text-muted);">Target Tab Name:</label>
-                    <input type="text" class="input-search" id="sheet-name-master" value="Raw Data Sheet" style="font-size:0.78rem; padding:0.25rem 0.65rem; flex:1;">
+                  
+                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.6rem; margin-bottom:1rem;">
+                    <div>
+                      <label style="font-size:0.75rem; font-weight:700; color:var(--text-muted); display:block; margin-bottom:0.2rem;">Target Tab Name:</label>
+                      <input type="text" class="input-search" id="sheet-name-master" value="Raw Data Sheet" style="font-size:0.78rem; padding:0.25rem 0.65rem; width:100%;">
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem; font-weight:700; color:var(--text-muted); display:block; margin-bottom:0.2rem;">Batch Mode:</label>
+                      <select class="select-filter" id="select-push-mode" style="font-size:0.78rem; padding:0.25rem 0.65rem; width:100%;">
+                        <option value="append" selected>➕ Append to Bottom (Fresh Batch)</option>
+                        <option value="overwrite">⚡ Overwrite Row 2+ (Replace All)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <div style="display: flex; gap: 0.75rem;">

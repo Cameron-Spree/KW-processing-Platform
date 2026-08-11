@@ -1,8 +1,7 @@
 /**
  * Google Sheets Integration & High-Speed Exporter for Briants
- * Formats 16 enriched columns (including Category & Micro-Topic Sub-Category)
+ * Features Context-Aware Headline Generation per Sub-Category & Batch Append/Overwrite Support.
  * Target Raw Sheet ID: 1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4
- * Strict Export Filter: EXCLUDES unclassified/ignored keywords from final export!
  */
 
 window.GoogleSheetsBridge = (function () {
@@ -44,6 +43,67 @@ window.GoogleSheetsBridge = (function () {
   }
 
   /**
+   * Generate unique, high-intent editorial headline based on Sub-Category, Category & Keyword.
+   */
+  function generateDynamicHeadline(kw, category, subCategory, intent) {
+    const cleanKw = (kw || '').trim();
+    const kwCap = cleanKw.charAt(0).toUpperCase() + cleanKw.slice(1);
+    const subCatLower = (subCategory || '').toLowerCase();
+    const intentLower = (intent || '').toLowerCase();
+
+    // Sub-Category Contextual Templates
+    if (subCatLower.includes('fuel') || subCatLower.includes('mix')) {
+      return `How to Mix Fuel & Oil for ${kwCap}: Ratio & Maintenance Guide`;
+    }
+    if (subCatLower.includes('sharpen') || subCatLower.includes('file')) {
+      return `${kwCap} Sharpening Guide: Angles, File Sizes & Tips`;
+    }
+    if (subCatLower.includes('repair') || subCatLower.includes('troubleshoot')) {
+      return `Troubleshooting ${kwCap}: Common Engine & Repair Fixes`;
+    }
+    if (subCatLower.includes('battery') || subCatLower.includes('cordless')) {
+      return `Best Cordless & Battery Powered ${kwCap}: UK Buying Guide`;
+    }
+    if (subCatLower.includes('small') || subCatLower.includes('mini')) {
+      return `Compact & Handheld ${kwCap}: Features & Best Uses`;
+    }
+    if (subCatLower.includes('budget') || subCatLower.includes('price')) {
+      return `Best Value ${kwCap}: Prices, Deals & Buying Advice`;
+    }
+    if (subCatLower.includes('bar') || subCatLower.includes('chain')) {
+      return `${kwCap} Fitting & Selection Guide: Sizes & Spares`;
+    }
+    if (subCatLower.includes('carburetor') || subCatLower.includes('filter')) {
+      return `Replacing & Cleaning Your ${kwCap}: Step-by-Step Tutorial`;
+    }
+    if (subCatLower.includes('clothing') || subCatLower.includes('chaps') || subCatLower.includes('boot')) {
+      return `Essential Protective Gear: ${kwCap} Safety Requirements`;
+    }
+    if (subCatLower.includes('helmet') || subCatLower.includes('visor') || subCatLower.includes('ppe')) {
+      return `Briants Safety Guide: ${kwCap} & Professional PPE Standards`;
+    }
+    if (subCatLower.includes('stihl')) {
+      return `STIHL ${kwCap}: Models, Specs & Professional Review`;
+    }
+    if (subCatLower.includes('husqvarna')) {
+      return `Husqvarna ${kwCap}: Performance & Model Comparison`;
+    }
+    if (subCatLower.includes('garden') || subCatLower.includes('firewood')) {
+      return `Using ${kwCap} for Firewood & Garden Maintenance`;
+    }
+    if (subCatLower.includes('arborist') || subCatLower.includes('logging')) {
+      return `Professional Arborist Guide: High-Performance ${kwCap}`;
+    }
+
+    // Fallback based on Intent
+    if (intentLower.includes('commercial') || intentLower.includes('transactional')) {
+      return `Best ${kwCap} for Sale: Briants Buyer's Guide & Comparison`;
+    }
+    
+    return `The Complete Guide to ${kwCap}: Setup, Operation & Maintenance`;
+  }
+
+  /**
    * Build 16-column Enriched TSV data string for cell A2 clipboard pasting.
    */
   function buildMasterEnrichedTSV(classifiedItems, clusters) {
@@ -51,7 +111,6 @@ window.GoogleSheetsBridge = (function () {
     const kwMap = getKeywordCategoryMapping(classifiedItems);
     const dateStr = new Date().toISOString().split('T')[0];
 
-    // 16 Master Headers (Including Category & Micro-Topic Sub-Category)
     const headers = [
       'Keyword',
       'Search Volume',
@@ -86,11 +145,7 @@ window.GoogleSheetsBridge = (function () {
       const category = catInfo.categoryLabel;
       const subCategory = catInfo.microTopicLabel;
 
-      const clusterObj = (clusters || []).find(c =>
-        (c.keywords || []).some(k => k.Keyword.toLowerCase() === kw.toLowerCase())
-      );
-
-      const headline = clusterObj ? clusterObj.proposedTitle : `The Complete Guide to ${kw} | Briants Advice`;
+      const headline = generateDynamicHeadline(kw, category, subCategory, intent);
       const url = `/products/${dept.toLowerCase().replace(/[^a-z0-9]/g, '-')}/${kw.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
 
       return [
@@ -117,7 +172,7 @@ window.GoogleSheetsBridge = (function () {
   }
 
   /**
-   * Build 16-column Enriched 2D Array for Webhook setValues() single batch push.
+   * Build 16-column Enriched 2D Array for Webhook setValues() batch push.
    */
   function getMasterEnrichedRowsArray(classifiedItems, clusters) {
     const validItems = filterCategorizedOnly(classifiedItems);
@@ -139,11 +194,7 @@ window.GoogleSheetsBridge = (function () {
       const category = catInfo.categoryLabel;
       const subCategory = catInfo.microTopicLabel;
 
-      const clusterObj = (clusters || []).find(c =>
-        (c.keywords || []).some(k => k.Keyword.toLowerCase() === kw.toLowerCase())
-      );
-
-      const headline = clusterObj ? clusterObj.proposedTitle : `Briants ${kw} Guide`;
+      const headline = generateDynamicHeadline(kw, category, subCategory, intent);
       const url = `/products/${kw.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
 
       return [
@@ -196,15 +247,16 @@ window.GoogleSheetsBridge = (function () {
   }
 
   /**
-   * Single Batch Google Apps Script Webhook Push.
+   * Batch Google Apps Script Webhook Push (Supports Overwrite & Append mode).
    */
-  async function pushToWebhook(webhookUrl, sheetName, tsvString, rowsArray) {
+  async function pushToWebhook(webhookUrl, sheetName, mode, rowsArray) {
     if (!webhookUrl) {
       throw new Error('Please enter a valid Google Apps Script Webhook URL.');
     }
 
     const payload = {
       sheetName: sheetName || 'Raw Data Sheet',
+      mode: mode || 'append', // 'append' adds to bottom; 'overwrite' starts at row 2
       rows: rowsArray || []
     };
 
@@ -220,12 +272,13 @@ window.GoogleSheetsBridge = (function () {
 
   function getGoogleAppsScriptTemplate() {
     return `/**
- * Briants High-Speed Single-Call Batch Receiver (16 Columns)
+ * Briants High-Speed Batch Receiver (Supports Overwrite & Append to Existing Data)
  */
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
     var sheetName = data.sheetName || 'Raw Data Sheet';
+    var mode = data.mode || 'append'; // 'append' or 'overwrite'
     var rows = data.rows || [];
     
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -234,10 +287,18 @@ function doPost(e) {
     if (rows.length > 0) {
       var numRows = rows.length;
       var numCols = rows[0].length;
-      sheet.getRange(2, 1, numRows, numCols).setValues(rows);
+      
+      if (mode === 'overwrite') {
+        sheet.getRange(2, 1, numRows, numCols).setValues(rows);
+      } else {
+        // Append mode: find last row and add fresh batch at bottom!
+        var lastRow = sheet.getLastRow();
+        var startRow = Math.max(lastRow + 1, 2);
+        sheet.getRange(startRow, 1, numRows, numCols).setValues(rows);
+      }
     }
     
-    return ContentService.createTextOutput(JSON.stringify({ status: 'success', rowsPushed: rows.length }))
+    return ContentService.createTextOutput(JSON.stringify({ status: 'success', rowsPushed: rows.length, mode: mode }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
@@ -249,6 +310,7 @@ function doPost(e) {
   return {
     buildMasterEnrichedTSV: buildMasterEnrichedTSV,
     getMasterEnrichedRowsArray: getMasterEnrichedRowsArray,
+    generateDynamicHeadline: generateDynamicHeadline,
     copyTSVToClipboard: copyTSVToClipboard,
     downloadCSV: downloadCSV,
     pushToWebhook: pushToWebhook,

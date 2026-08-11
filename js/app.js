@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Multi-Tab Google Sheets Safety & Flexible Target Tab Name Support.
+ * Dynamic Sub-Category Headline Generation & Fresh Batch Append/Overwrite Support.
  */
 
 (function () {
@@ -19,7 +19,8 @@
     },
     webhooks: {
       masterUrl: '',
-      sheetName: 'Raw Data Sheet'
+      sheetName: 'Raw Data Sheet',
+      pushMode: 'append'
     },
     executionTimeMs: 0,
     activeReassignKw: null,
@@ -76,6 +77,7 @@
       btnCopyMaster: document.getElementById('btn-copy-master'),
       urlMaster: document.getElementById('url-master'),
       sheetNameMaster: document.getElementById('sheet-name-master'),
+      selectPushMode: document.getElementById('select-push-mode'),
       btnPushMaster: document.getElementById('btn-push-master'),
       btnDownloadMasterCsv: document.getElementById('btn-download-master-csv'),
       btnAppsScriptModal: document.getElementById('btn-apps-script-modal'),
@@ -240,7 +242,7 @@
       dom.btnSaveNewCat.addEventListener('click', handleSaveNewCat);
     }
 
-    // 8. Auto-Save Master Webhook URL & Sheet Tab Name
+    // 8. Auto-Save Master Webhook URL, Sheet Name & Push Mode
     if (dom.urlMaster) {
       dom.urlMaster.addEventListener('input', (e) => {
         state.webhooks.masterUrl = e.target.value.trim();
@@ -253,13 +255,19 @@
         saveStateToStorage();
       });
     }
+    if (dom.selectPushMode) {
+      dom.selectPushMode.addEventListener('change', (e) => {
+        state.webhooks.pushMode = e.target.value;
+        saveStateToStorage();
+      });
+    }
 
     // Master Raw Sheet Actions
     if (dom.btnCopyMaster) {
       dom.btnCopyMaster.addEventListener('click', async () => {
         const tsv = window.GoogleSheetsBridge.buildMasterEnrichedTSV(state.classifiedItems, state.clusters);
         const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
-        if (res.success) showToast(`Copied enriched keywords! (Uncategorized items excluded) Paste into cell A2 with Ctrl+V`, 'success');
+        if (res.success) showToast(`Copied enriched keywords & dynamic sub-category headlines! Paste into Google Sheet with Ctrl+V`, 'success');
       });
     }
 
@@ -267,12 +275,14 @@
       dom.btnPushMaster.addEventListener('click', async () => {
         const url = dom.urlMaster ? dom.urlMaster.value.trim() : '';
         const sheetName = dom.sheetNameMaster ? dom.sheetNameMaster.value.trim() || 'Raw Data Sheet' : 'Raw Data Sheet';
+        const pushMode = dom.selectPushMode ? dom.selectPushMode.value : 'append';
         const rows = window.GoogleSheetsBridge.getMasterEnrichedRowsArray(state.classifiedItems, state.clusters);
         try {
           const startTime = performance.now();
-          await window.GoogleSheetsBridge.pushToWebhook(url, sheetName, null, rows);
+          await window.GoogleSheetsBridge.pushToWebhook(url, sheetName, pushMode, rows);
           const pushTimeMs = Math.round(performance.now() - startTime);
-          showToast(`Successfully pushed ${rows.length} categorized keywords to tab "${sheetName}" in ${pushTimeMs}ms!`, 'success');
+          const actionText = pushMode === 'append' ? 'appended to bottom of' : 'overwritten on';
+          showToast(`Successfully ${actionText} tab "${sheetName}" (${rows.length} rows) in ${pushTimeMs}ms!`, 'success');
         } catch (err) {
           showToast(err.message || 'Batch push failed.', 'error');
         }
@@ -849,6 +859,7 @@
           state.webhooks = parsed.webhooks;
           if (dom.urlMaster && state.webhooks.masterUrl) dom.urlMaster.value = state.webhooks.masterUrl;
           if (dom.sheetNameMaster && state.webhooks.sheetName) dom.sheetNameMaster.value = state.webhooks.sheetName;
+          if (dom.selectPushMode && state.webhooks.pushMode) dom.selectPushMode.value = state.webhooks.pushMode;
         }
       }
     } catch (e) {}
