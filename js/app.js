@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Features Interactive Trigger Token Rule Editor in Pillar Editor Modal & LocalStorage Persistence.
+ * Multi-Tab Google Sheets Safety & Flexible Target Tab Name Support.
  */
 
 (function () {
@@ -18,7 +18,8 @@
       intent: 'all'
     },
     webhooks: {
-      masterUrl: ''
+      masterUrl: '',
+      sheetName: 'Raw Data Sheet'
     },
     executionTimeMs: 0,
     activeReassignKw: null,
@@ -74,6 +75,7 @@
       // Tab 4: Master Raw Sheet Sync
       btnCopyMaster: document.getElementById('btn-copy-master'),
       urlMaster: document.getElementById('url-master'),
+      sheetNameMaster: document.getElementById('sheet-name-master'),
       btnPushMaster: document.getElementById('btn-push-master'),
       btnDownloadMasterCsv: document.getElementById('btn-download-master-csv'),
       btnAppsScriptModal: document.getElementById('btn-apps-script-modal'),
@@ -238,10 +240,16 @@
       dom.btnSaveNewCat.addEventListener('click', handleSaveNewCat);
     }
 
-    // 8. Auto-Save Master Webhook URL
+    // 8. Auto-Save Master Webhook URL & Sheet Tab Name
     if (dom.urlMaster) {
       dom.urlMaster.addEventListener('input', (e) => {
         state.webhooks.masterUrl = e.target.value.trim();
+        saveStateToStorage();
+      });
+    }
+    if (dom.sheetNameMaster) {
+      dom.sheetNameMaster.addEventListener('input', (e) => {
+        state.webhooks.sheetName = e.target.value.trim() || 'Raw Data Sheet';
         saveStateToStorage();
       });
     }
@@ -258,12 +266,13 @@
     if (dom.btnPushMaster) {
       dom.btnPushMaster.addEventListener('click', async () => {
         const url = dom.urlMaster ? dom.urlMaster.value.trim() : '';
+        const sheetName = dom.sheetNameMaster ? dom.sheetNameMaster.value.trim() || 'Raw Data Sheet' : 'Raw Data Sheet';
         const rows = window.GoogleSheetsBridge.getMasterEnrichedRowsArray(state.classifiedItems, state.clusters);
         try {
           const startTime = performance.now();
-          await window.GoogleSheetsBridge.pushToWebhook(url, 'Raw Data Sheet', null, rows);
+          await window.GoogleSheetsBridge.pushToWebhook(url, sheetName, null, rows);
           const pushTimeMs = Math.round(performance.now() - startTime);
-          showToast(`Successfully pushed ${rows.length} categorized keywords in ${pushTimeMs}ms! (Uncategorized items excluded)`, 'success');
+          showToast(`Successfully pushed ${rows.length} categorized keywords to tab "${sheetName}" in ${pushTimeMs}ms!`, 'success');
         } catch (err) {
           showToast(err.message || 'Batch push failed.', 'error');
         }
@@ -839,6 +848,7 @@
         if (parsed.webhooks) {
           state.webhooks = parsed.webhooks;
           if (dom.urlMaster && state.webhooks.masterUrl) dom.urlMaster.value = state.webhooks.masterUrl;
+          if (dom.sheetNameMaster && state.webhooks.sheetName) dom.sheetNameMaster.value = state.webhooks.sheetName;
         }
       }
     } catch (e) {}
