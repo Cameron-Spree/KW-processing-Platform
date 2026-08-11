@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Unclassified-Only Auto-Populate & Precise Pillar Editor Dropdown Fix
+ * Features Interactive Trigger Token Rule Editor in Pillar Editor Modal & LocalStorage Persistence.
  */
 
 (function () {
@@ -92,6 +92,10 @@
       btnAutofillPillar: document.getElementById('btn-autofill-pillar'),
       btnBulkClearPillar: document.getElementById('btn-bulk-clear-pillar'),
       inputPillarSearch: document.getElementById('input-pillar-search'),
+      pillarTokensEditorBar: document.getElementById('pillar-tokens-editor-bar'),
+      pillarTokensPillList: document.getElementById('pillar-tokens-pill-list'),
+      inputAddPillarToken: document.getElementById('input-add-pillar-token'),
+      btnAddPillarToken: document.getElementById('btn-add-pillar-token'),
       pillarMicroTopicsBar: document.getElementById('pillar-micro-topics-bar'),
       pillarEditorTbody: document.getElementById('pillar-editor-tbody'),
 
@@ -208,6 +212,14 @@
     }
     if (dom.btnBulkClearPillar) {
       dom.btnBulkClearPillar.addEventListener('click', handleBulkClearPillar);
+    }
+    if (dom.btnAddPillarToken) {
+      dom.btnAddPillarToken.addEventListener('click', handleAddPillarToken);
+    }
+    if (dom.inputAddPillarToken) {
+      dom.inputAddPillarToken.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAddPillarToken();
+      });
     }
 
     // 6. Reassign Modal Controls
@@ -483,9 +495,62 @@
 
     if (dom.inputPillarSearch) dom.inputPillarSearch.value = '';
 
+    renderPillarTokensBar(branch);
     renderMicroTopicsBar(branch);
     renderPillarEditorRows();
     openModal(dom.pillarEditorModal);
+  }
+
+  function renderPillarTokensBar(branch) {
+    if (!dom.pillarTokensPillList) return;
+
+    if (branch.id === 'unclassified') {
+      dom.pillarTokensPillList.innerHTML = `<span style="font-size:0.78rem; color:var(--text-muted);">Unassigned queue receives keywords that do not match any pillar tokens.</span>`;
+      if (dom.pillarTokensAddContainer) dom.pillarTokensAddContainer.style.display = 'none';
+      return;
+    }
+
+    if (dom.pillarTokensAddContainer) dom.pillarTokensAddContainer.style.display = 'flex';
+
+    const tokens = branch.tokens || [];
+    if (tokens.length === 0) {
+      dom.pillarTokensPillList.innerHTML = `<span style="font-size:0.78rem; color:var(--text-dim);">No trigger tokens set for this category.</span>`;
+      return;
+    }
+
+    const pillsHtml = tokens.map(token => `
+      <span class="audit-chip" style="font-size:0.75rem; padding:0.2rem 0.55rem; background:rgba(0,122,255,0.08); color:var(--primary); border-color:rgba(0,122,255,0.2);">
+        ${escapeHtml(token)}
+        <span class="btn-remove-token" data-token="${escapeHtml(token)}" style="margin-left:0.35rem; cursor:pointer; font-weight:700; color:#ef4444;" title="Remove Token">✕</span>
+      </span>
+    `).join('');
+
+    dom.pillarTokensPillList.innerHTML = pillsHtml;
+
+    // Wire Remove Token buttons
+    const removeBtns = dom.pillarTokensPillList.querySelectorAll('.btn-remove-token');
+    removeBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tokenToRemove = e.target.dataset.token;
+        window.SubClusterEngine.removeBranchToken(branch.id, tokenToRemove);
+        saveStateToStorage();
+        showToast(`Removed trigger token "${tokenToRemove}"! Saved 💾`, 'info');
+        refreshPillarAndMindmap();
+      });
+    });
+  }
+
+  function handleAddPillarToken() {
+    if (!state.activePillarBranch || !dom.inputAddPillarToken) return;
+    const val = dom.inputAddPillarToken.value.trim();
+    if (!val) return;
+
+    const autoPulledCount = window.SubClusterEngine.addBranchToken(state.activePillarBranch.id, val);
+    saveStateToStorage();
+    dom.inputAddPillarToken.value = '';
+
+    showToast(`Added trigger token "${val}" & auto-populated ${autoPulledCount} keywords! Saved 💾`, 'success');
+    refreshPillarAndMindmap();
   }
 
   function renderMicroTopicsBar(branch) {
@@ -636,6 +701,7 @@
       const updatedBranch = (updatedTree.branches || []).find(b => b.id === state.activePillarBranch.id);
       if (updatedBranch) {
         state.activePillarBranch = updatedBranch;
+        renderPillarTokensBar(updatedBranch);
         renderMicroTopicsBar(updatedBranch);
         renderPillarEditorRows();
       }

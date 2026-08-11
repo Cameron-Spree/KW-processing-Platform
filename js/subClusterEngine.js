@@ -1,6 +1,6 @@
 /**
  * Enhanced Non-AI Sub-Clustering & Micro-Topic Audit Engine for Briants
- * Features Full State Serialization, Unclassified-Only Auto-Populate Engine, and Preserved LocalStorage State.
+ * Features Interactive Trigger Token Rule Editing per Category & LocalStorage Persistence.
  */
 
 window.SubClusterEngine = (function () {
@@ -344,6 +344,47 @@ window.SubClusterEngine = (function () {
   }
 
   /**
+   * Add a trigger token to a pillar category and auto-update micro-topics.
+   */
+  function addBranchToken(branchId, token) {
+    const branchDef = subThemeDefinitions.find(st => st.id === branchId);
+    if (!branchDef || !token) return 0;
+    const cleanToken = token.toLowerCase().trim();
+
+    if (!branchDef.tokens.includes(cleanToken)) {
+      branchDef.tokens.push(cleanToken);
+
+      // Auto-generate micro-topic pill for new token if custom branch
+      if (branchId.startsWith('custom_')) {
+        const formattedLabel = cleanToken.charAt(0).toUpperCase() + cleanToken.slice(1);
+        branchDef.microTopics.push({
+          id: `${branchId}_micro_${Date.now()}`,
+          label: `${formattedLabel} Focus`,
+          tokens: [cleanToken]
+        });
+      }
+
+      // Automatically re-scan Unclassified pool for new token!
+      return autoFillBranch(branchId);
+    }
+    return 0;
+  }
+
+  /**
+   * Remove a trigger token from a pillar category.
+   */
+  function removeBranchToken(branchId, token) {
+    const branchDef = subThemeDefinitions.find(st => st.id === branchId);
+    if (!branchDef || !token) return;
+    const cleanToken = token.toLowerCase().trim();
+
+    branchDef.tokens = branchDef.tokens.filter(t => t !== cleanToken);
+    if (branchDef.microTopics) {
+      branchDef.microTopics = branchDef.microTopics.filter(m => !m.tokens.includes(cleanToken));
+    }
+  }
+
+  /**
    * Reassign a keyword manually to a specific branch.
    */
   function reassignKeyword(keyword, targetBranchId) {
@@ -372,7 +413,6 @@ window.SubClusterEngine = (function () {
     if (!savedState) return;
 
     if (savedState.subThemeDefinitions && Array.isArray(savedState.subThemeDefinitions)) {
-      // Merge saved custom categories into subThemeDefinitions
       savedState.subThemeDefinitions.forEach(savedDef => {
         const idx = subThemeDefinitions.findIndex(st => st.id === savedDef.id);
         if (idx >= 0) {
@@ -393,6 +433,8 @@ window.SubClusterEngine = (function () {
     bulkDiscardBranch: bulkDiscardBranch,
     addCustomCategory: addCustomCategory,
     autoFillBranch: autoFillBranch,
+    addBranchToken: addBranchToken,
+    removeBranchToken: removeBranchToken,
     reassignKeyword: reassignKeyword,
     getSubThemes: getSubThemes,
     exportEngineState: exportEngineState,
