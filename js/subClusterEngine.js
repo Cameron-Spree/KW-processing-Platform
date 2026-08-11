@@ -1,6 +1,6 @@
 /**
  * Enhanced Non-AI Sub-Clustering & Micro-Topic Audit Engine for Briants
- * Features Full State Serialization & LocalStorage Persistence across browser refreshes!
+ * Features Full State Serialization, Unclassified-Only Auto-Populate Engine, and Preserved LocalStorage State.
  */
 
 window.SubClusterEngine = (function () {
@@ -259,7 +259,7 @@ window.SubClusterEngine = (function () {
   }
 
   /**
-   * Add a user-defined custom category branch & auto-generate micro-topics from trigger tokens.
+   * Add a user-defined custom category branch & auto-fill ONLY from UNCLASSIFIED queue.
    */
   function addCustomCategory(categoryName, categoryIcon = '📁', categoryTokens = [], autoFill = true) {
     const id = 'custom_' + categoryName.toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -295,8 +295,14 @@ window.SubClusterEngine = (function () {
     }
 
     let autoFilledCount = 0;
+
+    // STRICT UNCLASSIFIED-ONLY AUTO-FILL
     if (autoFill && cleanTokens.length > 0 && rawDatasetCache.length > 0) {
-      rawDatasetCache.forEach(item => {
+      const currentTree = buildTopicTree(rawDatasetCache);
+      const unclassifiedBranch = (currentTree.branches || []).find(b => b.id === 'unclassified');
+      const unclassifiedNodes = unclassifiedBranch ? unclassifiedBranch.nodes : [];
+
+      unclassifiedNodes.forEach(item => {
         const kw = (item.Keyword || '').toLowerCase().trim();
         for (const token of cleanTokens) {
           if (kw.includes(token)) {
@@ -312,14 +318,18 @@ window.SubClusterEngine = (function () {
   }
 
   /**
-   * Auto-fill an existing branch with all matching keywords from the dataset and auto-generate micro-topics.
+   * Auto-fill an existing branch ONLY from UNCLASSIFIED queue.
    */
   function autoFillBranch(branchId) {
     const branchDef = subThemeDefinitions.find(st => st.id === branchId);
-    if (!branchDef || !branchDef.tokens || branchDef.tokens.length === 0) return 0;
+    if (!branchDef || !branchDef.tokens || branchDef.tokens.length === 0 || rawDatasetCache.length === 0) return 0;
 
     let filledCount = 0;
-    rawDatasetCache.forEach(item => {
+    const currentTree = buildTopicTree(rawDatasetCache);
+    const unclassifiedBranch = (currentTree.branches || []).find(b => b.id === 'unclassified');
+    const unclassifiedNodes = unclassifiedBranch ? unclassifiedBranch.nodes : [];
+
+    unclassifiedNodes.forEach(item => {
       const kw = (item.Keyword || '').toLowerCase().trim();
       for (const token of branchDef.tokens) {
         if (kw.includes(token)) {
@@ -356,13 +366,23 @@ window.SubClusterEngine = (function () {
   }
 
   /**
-   * Deserialize Engine State from LocalStorage.
+   * Deserialize Engine State from LocalStorage while preserving custom user categories.
    */
   function importEngineState(savedState) {
     if (!savedState) return;
+
     if (savedState.subThemeDefinitions && Array.isArray(savedState.subThemeDefinitions)) {
-      subThemeDefinitions = savedState.subThemeDefinitions;
+      // Merge saved custom categories into subThemeDefinitions
+      savedState.subThemeDefinitions.forEach(savedDef => {
+        const idx = subThemeDefinitions.findIndex(st => st.id === savedDef.id);
+        if (idx >= 0) {
+          subThemeDefinitions[idx] = savedDef;
+        } else {
+          subThemeDefinitions.push(savedDef);
+        }
+      });
     }
+
     if (savedState.manualOverrides && Array.isArray(savedState.manualOverrides)) {
       manualOverrides = new Map(savedState.manualOverrides);
     }

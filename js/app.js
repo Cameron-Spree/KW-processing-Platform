@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Features Full Browser LocalStorage Persistence for Custom Categories, Micro-Topics, and Keyword Reassignments.
+ * Unclassified-Only Auto-Populate & Precise Pillar Editor Dropdown Fix
  */
 
 (function () {
@@ -529,6 +529,7 @@
 
     const query = (dom.inputPillarSearch ? dom.inputPillarSearch.value : '').toLowerCase().trim();
     const branch = state.activePillarBranch;
+    const isUnassignedBranch = (branch.id === 'unclassified');
     const subThemes = window.SubClusterEngine.getSubThemes();
 
     const filtered = branch.nodes.filter(n => {
@@ -552,8 +553,10 @@
       const fitBadgeClass = 'badge-fit-' + (item.fitType || 'unclassified');
 
       const optionsHtml = subThemes.map(st => `
-        <option value="${st.id}" ${st.id === branch.id ? 'selected' : ''}>${st.icon} ${st.label}</option>
+        <option value="${st.id}" ${(!isUnassignedBranch && st.id === branch.id) ? 'selected' : ''}>${st.icon} ${st.label}</option>
       `).join('');
+
+      const unassignedOptionHtml = `<option value="unclassified" ${isUnassignedBranch ? 'selected' : ''}>❓ Unassigned Queue</option>`;
 
       return `
         <tr>
@@ -566,7 +569,7 @@
           <td>
             <select class="select-filter select-inline-reassign" data-kw="${escapeHtml(item.Keyword)}" style="font-size:0.78rem; padding:0.25rem 0.65rem; width:100%;">
               ${optionsHtml}
-              <option value="unclassified">❓ Unassigned Queue</option>
+              ${unassignedOptionHtml}
             </select>
           </td>
           <td>
@@ -588,7 +591,7 @@
         const targetBranchId = e.target.value;
         window.SubClusterEngine.reassignKeyword(kw, targetBranchId);
         saveStateToStorage();
-        showToast(`Reassigned "${kw}"! Saved in browser 💾`, 'success');
+        showToast(`Reassigned "${kw}"! Saved 💾`, 'success');
         refreshPillarAndMindmap();
       });
     });
@@ -610,7 +613,7 @@
     if (!state.activePillarBranch) return;
     const count = window.SubClusterEngine.autoFillBranch(state.activePillarBranch.id);
     saveStateToStorage();
-    showToast(`Auto-populated "${state.activePillarBranch.label}" with ${count} matching keywords! Saved 💾`, 'success');
+    showToast(`Auto-populated "${state.activePillarBranch.label}" with ${count} unclassified keywords! Saved 💾`, 'success');
     refreshPillarAndMindmap();
   }
 
@@ -680,7 +683,7 @@
     dom.inputCatTokens.value = '';
 
     renderMindmapView();
-    showToast(`Created category "${name}", auto-filled ${res.autoFilledCount} keywords & ${res.microTopicsCount} micro-topics! Saved 💾`, 'success');
+    showToast(`Created category "${name}", auto-filled ${res.autoFilledCount} unclassified keywords & ${res.microTopicsCount} micro-topics! Saved 💾`, 'success');
   }
 
   /* --- Modals & Helpers --- */
