@@ -1,7 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Supports Product Family Isolation (e.g. Chainsaw Safety vs Hedge Trimmer Safety)
- * and 1-Click Reset Cache with Confirmation.
+ * Features Universal N-Gram Dataset Category Synthesizer for ANY Product Line (Paving, Decking, Tractors, Tools).
  */
 
 (function () {
@@ -426,11 +425,13 @@
 
   /* --- Data Ingestion & Enrichment --- */
   function handleFileImport(file) {
-    const fileName = file ? file.name.replace(/\.[^/.]+$/, "") : "Dataset";
-    let inferredProduct = "Chainsaws";
-    if (fileName.toLowerCase().includes("hedge")) inferredProduct = "Hedge Trimmers";
-    else if (fileName.toLowerCase().includes("fence") || fileName.toLowerCase().includes("landscap")) inferredProduct = "Fencing & Landscaping";
-    else if (fileName.toLowerCase().includes("mower") || fileName.toLowerCase().includes("tractor")) inferredProduct = "Lawn Tractors";
+    const rawFileName = file ? file.name.replace(/\.[^/.]+$/, "") : "Products";
+    let inferredProduct = rawFileName.replace(/[^a-zA-Z0-9 &]/g, " ").trim();
+    if (!inferredProduct || inferredProduct.toLowerCase().includes("dataset") || inferredProduct.toLowerCase().includes("export")) {
+      inferredProduct = "Products";
+    }
+    // Clean Title Case formatting (e.g. "paving_slabs" -> "Paving Slabs")
+    inferredProduct = inferredProduct.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
     if (dom.inputProductFamily) dom.inputProductFamily.value = inferredProduct;
     window.SubClusterEngine.setProductFamily(inferredProduct);
@@ -501,7 +502,7 @@
       return;
     }
 
-    const currentFamily = dom.inputProductFamily ? dom.inputProductFamily.value.trim() || 'Chainsaws' : 'Chainsaws';
+    const currentFamily = dom.inputProductFamily ? dom.inputProductFamily.value.trim() || 'Products' : 'Products';
     window.SubClusterEngine.setProductFamily(currentFamily);
     state.discoveryProposals = window.SubClusterEngine.discoverDatasetCategories(state.classifiedItems, currentFamily);
     renderCategoryDiscoveryCards();

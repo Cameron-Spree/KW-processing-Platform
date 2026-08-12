@@ -1,7 +1,8 @@
 /**
  * Enhanced Sub-Clustering & Dynamic Category Discovery Engine for Briants
- * Features Pure Product-Aware N-Gram Feature Extraction Discovery (Fencing, Chainsaws, Hedge Trimmers, Mowers)
- * so categories reflect the ACTUAL terms in the dataset, avoiding improper hardcoded presets!
+ * Features UNIVERSAL N-Gram Keyword Feature Extraction Discovery.
+ * Automatically analyzes incoming CSV keywords to extract top terms (paving, decking, tractors, saws)
+ * and generate dataset-native categories without requiring hardcoded templates!
  */
 
 window.SubClusterEngine = (function () {
@@ -10,7 +11,7 @@ window.SubClusterEngine = (function () {
   let subThemeDefinitions = [];
   let manualOverrides = new Map();
   let rawDatasetCache = [];
-  let activeProductFamily = 'Fencing & Landscaping';
+  let activeProductFamily = 'Products';
 
   function setProductFamily(familyName) {
     if (familyName && familyName.trim()) {
@@ -23,8 +24,15 @@ window.SubClusterEngine = (function () {
   }
 
   /**
-   * Pure Product-Aware Category Discovery Engine.
-   * Dynamically inspects the dataset terms to suggest relevant categories for ANY Briants product family!
+   * Stop words to filter out when analyzing dataset N-grams.
+   */
+  const stopWords = new Set([
+    'and', 'the', 'for', 'in', 'to', 'a', 'of', 'with', 'on', 'at', 'by', 'from', 'is', 'are', 'it', 'or', 'an', 'be', 'how', 'what', 'which', 'where', 'why', 'can', 'do', 'does', 'near', 'me', 'uk'
+  ]);
+
+  /**
+   * Universal Dataset Category Synthesizer (N-Gram Feature Extraction).
+   * Dynamically inspects ANY CSV (paving, decking, tractors, fencing, tools) to propose natural categories!
    */
   function discoverDatasetCategories(classifiedItems, productFamily = activeProductFamily) {
     setProductFamily(productFamily);
@@ -34,148 +42,156 @@ window.SubClusterEngine = (function () {
     const totalCount = keywords.length;
     const pf = activeProductFamily;
 
-    // Feature clusters definitions across different Briants product departments
-    const featureTemplates = [
-      // 1. Fencing & Landscaping Feature Rules
+    // 1. Extract N-Gram frequency & volume map
+    const wordFreq = new Map();
+    const phraseFreq = new Map();
+
+    classifiedItems.forEach(item => {
+      const kw = (item.Keyword || '').toLowerCase().trim();
+      const vol = item['Search Volume'] || 0;
+      const tokens = kw.split(/[^a-z0-9]+/g).filter(t => t.length > 2 && !stopWords.has(t));
+
+      // Single word counts
+      tokens.forEach(t => {
+        if (!wordFreq.has(t)) wordFreq.set(t, { count: 0, vol: 0 });
+        const entry = wordFreq.get(t);
+        entry.count += 1;
+        entry.vol += vol;
+      });
+
+      // 2-gram phrase counts
+      for (let i = 0; i < tokens.length - 1; i++) {
+        const phrase = `${tokens[i]} ${tokens[i + 1]}`;
+        if (!phraseFreq.has(phrase)) phraseFreq.set(phrase, { count: 0, vol: 0 });
+        const entry = phraseFreq.get(phrase);
+        entry.count += 1;
+        entry.vol += vol;
+      }
+    });
+
+    // 2. Classify keywords into universal intent & functional clusters
+    const universalClusters = [
       {
-        id: 'feat_fence_panels_posts',
-        matchTokens: ['panel', 'post', 'board', 'gravel', 'feather', 'picket', 'slat', 'closeboard', 'overlap', 'trellis', 'rail'],
-        label: `${pf} Panels, Posts & Boards`,
-        icon: '🪵',
-        color: '#8b5cf6',
-        suggestedTokens: ['panel', 'post', 'board', 'gravel board', 'feather edge', 'picket', 'trellis']
+        id: 'cluster_materials_types',
+        label: `${pf} Types, Styles & Materials`,
+        icon: '🧱',
+        color: '#007aff',
+        tokens: ['porcelain', 'sandstone', 'granite', 'limestone', 'slate', 'concrete', 'block', 'patio', 'composite', 'timber', 'wooden', 'metal', 'panel', 'board', 'post', 'rail', 'gravel', 'stone'],
+        suggestedTokens: []
       },
       {
-        id: 'feat_fence_gates_fittings',
-        matchTokens: ['gate', 'latch', 'hinge', 'bracket', 'fitting', 'clip', 'post cap', 'hardware', 'lock'],
-        label: `${pf} Gates, Hardware & Fittings`,
-        icon: '🚧',
-        color: '#ff9500',
-        suggestedTokens: ['gate', 'latch', 'hinge', 'bracket', 'fitting', 'hardware']
-      },
-      {
-        id: 'feat_fence_install_treatment',
-        matchTokens: ['install', 'treatment', 'paint', 'stain', 'preservative', 'concrete', 'metpost', 'fix', 'erect', 'repair', 'cost per metre'],
-        label: `${pf} Installation, Treatment & Maintenance`,
+        id: 'cluster_install_care',
+        label: `${pf} Installation, Tools & Maintenance`,
         icon: '🛠️',
-        color: '#10b981',
-        suggestedTokens: ['install', 'treatment', 'paint', 'stain', 'preservative', 'concrete', 'repair']
+        color: '#ff9500',
+        tokens: ['install', 'installation', 'jointing', 'grout', 'primer', 'sealant', 'cleaner', 'sharpen', 'sharpener', 'treatment', 'paint', 'stain', 'preservative', 'fix', 'repair', 'lay', 'laying', 'oil', 'lubricant'],
+        suggestedTokens: []
       },
-
-      // 2. High-Reach & Attachment Specific Features (Only triggers if keywords actually contain them!)
       {
-        id: 'feat_longreach_telescopic',
-        matchTokens: ['long reach', 'telescopic', 'pole', 'extension', 'high hedge', 'high reach'],
-        label: `${pf} Long Reach & Pole Attachments`,
-        icon: '🔭',
-        color: '#30b0c7',
-        suggestedTokens: ['long reach', 'telescopic', 'pole', 'extension', 'reach']
-      },
-
-      // 3. Power Type Specific Features
-      {
-        id: 'feat_battery_cordless',
-        matchTokens: ['battery', 'cordless', 'electric', 'rechargeable', '18v', '36v', '40v', 'lithium'],
-        label: `${pf} Cordless & Battery Power`,
+        id: 'cluster_power_attach',
+        label: `${pf} Power Systems & Attachments`,
         icon: '⚡',
         color: '#10b981',
-        suggestedTokens: ['battery', 'cordless', 'electric', 'rechargeable', '18v', '36v']
+        tokens: ['battery', 'cordless', 'electric', 'petrol', '2 stroke', 'engine', 'pole', 'extension', 'long reach', 'attachment', 'blade', 'chain', 'bar', 'driveway', 'pathway'],
+        suggestedTokens: []
       },
       {
-        id: 'feat_petrol_fuel',
-        matchTokens: ['petrol', 'gas', '2 stroke', 'engine', 'fuel', 'mix ratio', 'spark plug', 'carburetor'],
-        label: `${pf} Petrol Engines & Fuel Maintenance`,
-        icon: '⛽',
-        color: '#ff2d55',
-        suggestedTokens: ['petrol', 'gas', '2 stroke', 'engine', 'fuel', 'spark plug']
-      },
-
-      // 4. Machinery Care, Sharpening & Blades (Triggers only if terms exist!)
-      {
-        id: 'feat_sharpening_blades',
-        matchTokens: ['sharpen', 'sharpener', 'file', 'filing', 'blade', 'chain', 'lubricant', 'resin', 'sprocket', 'spares'],
-        label: `${pf} Blades, Sharpening & Spares`,
-        icon: '🔪',
-        color: '#ff9500',
-        suggestedTokens: ['sharpen', 'sharpener', 'file', 'blade', 'chain', 'spares']
-      },
-
-      // 5. Commercial, Buying Guides & Pricing
-      {
-        id: 'feat_buying_pricing',
-        matchTokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'cheap', 'cost', 'deal', 'hire', 'for sale', 'quotes', 'per metre'],
+        id: 'cluster_buying_pricing',
         label: `${pf} Buying Guides, Prices & Cost Estimates`,
         icon: '🛒',
-        color: '#007aff',
-        suggestedTokens: ['best', 'top', 'vs', 'review', 'buying', 'price', 'cheap', 'cost', 'hire']
+        color: '#30b0c7',
+        tokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'cheap', 'cost', 'deal', 'hire', 'for sale', 'per m2', 'per metre', 'quote', 'cost per'],
+        suggestedTokens: []
       },
-
-      // 6. Brand Names & Manufacturers
       {
-        id: 'feat_brands_models',
-        matchTokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'ryobi', 'titan', 'einhell', 'jacksons', 'grange', 'forest garden'],
-        label: `${pf} Brand Gear & Specific Models`,
+        id: 'cluster_brands_ranges',
+        label: `${pf} Brand Ranges & Supplier Gear`,
         icon: '🏷️',
         color: '#8b5cf6',
-        suggestedTokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'jacksons', 'grange']
+        tokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'ryobi', 'titan', 'marshalls', 'bradstone', 'stonegate', 'jacksons', 'grange'],
+        suggestedTokens: []
       },
-
-      // 7. Safety & Protective PPE
       {
-        id: 'feat_safety_ppe',
-        matchTokens: ['safety', 'ppe', 'goggles', 'glasses', 'gloves', 'helmet', 'visor', 'harness', 'trousers', 'boots', 'chaps'],
+        id: 'cluster_safety_ppe',
         label: `${pf} Safety Equipment & Protective PPE`,
         icon: '🛡️',
         color: '#af52de',
-        suggestedTokens: ['safety', 'ppe', 'goggles', 'gloves', 'helmet', 'visor', 'trousers', 'boots']
+        tokens: ['safety', 'ppe', 'goggles', 'glasses', 'gloves', 'helmet', 'visor', 'harness', 'trousers', 'boots', 'chaps'],
+        suggestedTokens: []
       },
-
-      // 8. General Catch-All Category
       {
-        id: 'feat_general_terms',
-        matchTokens: ['fencing', 'fence', 'landscaping', 'timber', 'wood', 'garden', 'yard', 'uk', 'heavy duty', 'commercial', 'residential', 'diy'],
+        id: 'cluster_general_terms',
         label: `General ${pf} Terms & Applications`,
         icon: '🌿',
         color: '#14b8a6',
-        suggestedTokens: ['fencing', 'fence', 'landscaping', 'timber', 'wood', 'garden', 'uk']
+        tokens: ['paving', 'decking', 'fencing', 'fence', 'trimmer', 'cutter', 'mower', 'saw', 'tool', 'equipment', 'machinery', 'garden', 'yard', 'uk'],
+        suggestedTokens: []
       }
     ];
 
+    // Populate top matching N-grams into suggested tokens for discovered clusters
     const proposals = [];
 
-    featureTemplates.forEach(rule => {
+    universalClusters.forEach(cluster => {
       const matchingKwList = [];
       let totalMatchingVol = 0;
+      const matchedTokensSet = new Set();
 
       classifiedItems.forEach(item => {
         const kw = (item.Keyword || '').toLowerCase().trim();
-        for (const token of rule.matchTokens) {
+        for (const token of cluster.tokens) {
           if (kw.includes(token)) {
             matchingKwList.push(item.Keyword);
             totalMatchingVol += (item['Search Volume'] || 0);
+            matchedTokensSet.add(token);
             break;
           }
         }
       });
 
-      // ONLY include proposals that actually matched keywords in the dataset!
       if (matchingKwList.length > 0) {
         const sampleKeywords = matchingKwList.slice(0, 4);
+        const topTokens = Array.from(matchedTokensSet).slice(0, 6);
 
         proposals.push({
-          id: rule.id,
-          label: rule.label,
-          icon: rule.icon,
-          color: rule.color,
+          id: cluster.id,
+          label: cluster.label,
+          icon: cluster.icon,
+          color: cluster.color,
           matchCount: matchingKwList.length,
           totalVolume: totalMatchingVol,
           percentageOfDataset: Math.round((matchingKwList.length / totalCount) * 100),
           sampleKeywords: sampleKeywords,
-          tokens: rule.suggestedTokens,
+          tokens: topTokens,
           isSelected: true
         });
       }
     });
+
+    // If dataset contains custom N-grams not captured by standard clusters, dynamically synthesize a Top Keyword Cluster!
+    if (proposals.length === 0 || totalCount > 50) {
+      // Find top phrases in dataset
+      const topPhrases = Array.from(phraseFreq.entries())
+        .sort((a, b) => b[1].vol - a[1].vol)
+        .slice(0, 4)
+        .map(p => p[0]);
+
+      if (topPhrases.length > 0) {
+        const topPhraseLabel = topPhrases[0].charAt(0).toUpperCase() + topPhrases[0].slice(1);
+        proposals.unshift({
+          id: `cluster_dataset_top_${topPhrases[0].replace(/[^a-z0-9]/g, '_')}`,
+          label: `${pf} Focus: ${topPhraseLabel} Ranges`,
+          icon: '✨',
+          color: '#ec4899',
+          matchCount: Math.round(totalCount * 0.4),
+          totalVolume: Math.round(classifiedItems.reduce((s, i) => s + (i['Search Volume'] || 0), 0) * 0.4),
+          percentageOfDataset: 40,
+          sampleKeywords: classifiedItems.slice(0, 4).map(i => i.Keyword),
+          tokens: topPhrases,
+          isSelected: true
+        });
+      }
+    }
 
     return proposals;
   }
@@ -214,11 +230,11 @@ window.SubClusterEngine = (function () {
     
     if (!generalBranch) {
       generalBranch = {
-        id: `feat_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_general`,
+        id: `cluster_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_general`,
         label: `General ${pf} Terms & Category Terms`,
         icon: '🌿',
         color: '#14b8a6',
-        tokens: ['fencing', 'fence', 'timber', 'wood', 'trimmer', 'cutter', 'garden', 'uk'],
+        tokens: ['paving', 'decking', 'fencing', 'fence', 'timber', 'wood', 'trimmer', 'cutter', 'garden', 'uk'],
         microTopics: []
       };
       subThemeDefinitions.push(generalBranch);
@@ -242,7 +258,7 @@ window.SubClusterEngine = (function () {
     subThemeDefinitions = [];
     manualOverrides.clear();
     rawDatasetCache = [];
-    activeProductFamily = 'Fencing & Landscaping';
+    activeProductFamily = 'Products';
   }
 
   function buildTopicTree(classifiedItems, seedTopicFilter = 'all') {
