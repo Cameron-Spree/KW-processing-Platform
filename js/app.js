@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Features Focus Pillar Topic Selector & Strict Mindmap Topic Isolation (Chainsaws vs Fencing).
+ * Features Mandatory Pre-Import Category Confirmation Modal & Immediate Mindmap Rendering.
  */
 
 (function () {
@@ -23,6 +23,8 @@
       pushMode: 'append',
       exportScope: 'all'
     },
+    pendingFileText: null,
+    pendingFileName: null,
     discoveryProposals: [],
     executionTimeMs: 0,
     activeReassignKw: null,
@@ -90,10 +92,16 @@
       btnAppsScriptModal: document.getElementById('btn-apps-script-modal'),
 
       // Modals
+      preImportCategoryModal: document.getElementById('pre-import-category-modal'),
+      btnClosePreImportModal: document.getElementById('btn-close-pre-import-modal'),
+      preImportFileName: document.getElementById('pre-import-file-name'),
+      preImportSelectCategory: document.getElementById('pre-import-select-category'),
+      preImportInputCategory: document.getElementById('pre-import-input-category'),
+      btnConfirmPreImportCategory: document.getElementById('btn-confirm-pre-import-category'),
+
       categoryDiscoveryModal: document.getElementById('category-discovery-modal'),
       btnCloseDiscoveryModal: document.getElementById('btn-close-discovery-modal'),
-      selectExistingProductFamily: document.getElementById('select-existing-product-family'),
-      inputProductFamily: document.getElementById('input-product-family'),
+      discoveryActiveTopicName: document.getElementById('discovery-active-topic-name'),
       discoveryProposalsContainer: document.getElementById('discovery-proposals-container'),
       btnApplyDiscoveryCategories: document.getElementById('btn-apply-discovery-categories'),
       discoverySelectedCount: document.getElementById('discovery-selected-count'),
@@ -154,7 +162,7 @@
       });
     });
 
-    // 2. Dropzone & File Ingestion
+    // 2. Dropzone & File Ingestion (Intercepts file to prompt Category first!)
     if (dom.dropzone) {
       dom.dropzone.addEventListener('click', () => dom.fileInput.click());
 
@@ -171,7 +179,7 @@
         e.preventDefault();
         dom.dropzone.classList.remove('drag-over');
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-          handleFileImport(e.dataTransfer.files[0]);
+          interceptFileImport(e.dataTransfer.files[0]);
         }
       });
     }
@@ -179,12 +187,28 @@
     if (dom.fileInput) {
       dom.fileInput.addEventListener('change', (e) => {
         if (e.target.files && e.target.files[0]) {
-          handleFileImport(e.target.files[0]);
+          interceptFileImport(e.target.files[0]);
         }
       });
     }
 
-    // 3. Header Action Buttons & Reset Cache
+    // 3. Pre-Import Category Selection Modal Actions
+    if (dom.btnClosePreImportModal) {
+      dom.btnClosePreImportModal.addEventListener('click', () => closeModal(dom.preImportCategoryModal));
+    }
+    if (dom.btnConfirmPreImportCategory) {
+      dom.btnConfirmPreImportCategory.addEventListener('click', handleConfirmPreImportCategory);
+    }
+    if (dom.preImportSelectCategory) {
+      dom.preImportSelectCategory.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val !== 'NEW_CATEGORY') {
+          if (dom.preImportInputCategory) dom.preImportInputCategory.value = val;
+        }
+      });
+    }
+
+    // 4. Header Action Buttons & Reset Cache
     if (dom.btnLoadSample) {
       dom.btnLoadSample.addEventListener('click', loadSampleDataset);
     }
@@ -201,48 +225,20 @@
       dom.btnConfirmResetCache.addEventListener('click', handleResetCache);
     }
 
-    // 4. Discovery Modal Actions
+    // 5. Discovery Modal Actions
     if (dom.btnCloseDiscoveryModal) {
       dom.btnCloseDiscoveryModal.addEventListener('click', () => closeModal(dom.categoryDiscoveryModal));
     }
     if (dom.btnApplyDiscoveryCategories) {
       dom.btnApplyDiscoveryCategories.addEventListener('click', handleApplyDiscoveryCategories);
     }
-    if (dom.selectExistingProductFamily) {
-      dom.selectExistingProductFamily.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (val !== 'NEW_TOPIC') {
-          if (dom.inputProductFamily) dom.inputProductFamily.value = val;
-          window.SubClusterEngine.setProductFamily(val);
-          state.discoveryProposals = window.SubClusterEngine.discoverDatasetCategories(state.classifiedItems, val);
-          renderCategoryDiscoveryCards();
-        }
-      });
-    }
-    if (dom.inputProductFamily) {
-      dom.inputProductFamily.addEventListener('input', (e) => {
-        const val = e.target.value.trim() || 'Products';
-        window.SubClusterEngine.setProductFamily(val);
-        state.discoveryProposals = window.SubClusterEngine.discoverDatasetCategories(state.classifiedItems, val);
-        renderCategoryDiscoveryCards();
-      });
-    }
 
-    // 5. Mindmap Topic Filter Action
-    if (dom.selectMindmapTopic) {
-      dom.selectMindmapTopic.addEventListener('change', (e) => {
-        const selectedTopic = e.target.value;
-        window.SubClusterEngine.setProductFamily(selectedTopic);
-        renderMindmapView();
-        showToast(`Filtered Mindmap for Focus Topic: "${selectedTopic}" 🗺️`, 'info');
-      });
-    }
-
+    // 6. Mindmap Sweep Action
     if (dom.btnSweepUnclassified) {
       dom.btnSweepUnclassified.addEventListener('click', handleSweepUnclassified);
     }
 
-    // 6. Taxonomy Filtering & Rule Modal
+    // 7. Taxonomy Filtering & Rule Modal
     if (dom.inputTaxonomySearch) {
       dom.inputTaxonomySearch.addEventListener('input', (e) => {
         state.filters.search = e.target.value;
@@ -276,7 +272,7 @@
       dom.btnSaveRules.addEventListener('click', handleSaveRules);
     }
 
-    // 7. Pillar Editor Modal Controls
+    // 8. Pillar Editor Modal Controls
     if (dom.btnClosePillarEditor) {
       dom.btnClosePillarEditor.addEventListener('click', () => closeModal(dom.pillarEditorModal));
     }
@@ -298,7 +294,7 @@
       });
     }
 
-    // 8. Reassign Modal Controls
+    // 9. Reassign Modal Controls
     if (dom.btnCloseReassignModal) {
       dom.btnCloseReassignModal.addEventListener('click', () => closeModal(dom.reassignModal));
     }
@@ -306,7 +302,7 @@
       dom.btnSaveReassign.addEventListener('click', handleSaveReassign);
     }
 
-    // 9. New Custom Category Modal Controls
+    // 10. New Custom Category Modal Controls
     if (dom.btnCloseCatModal) {
       dom.btnCloseCatModal.addEventListener('click', () => closeModal(dom.newCategoryModal));
     }
@@ -314,7 +310,7 @@
       dom.btnSaveNewCat.addEventListener('click', handleSaveNewCat);
     }
 
-    // 10. Auto-Save Master Webhook URL, Sheet Name & Push Mode & Scope
+    // 11. Auto-Save Master Webhook URL, Sheet Name & Push Mode & Scope
     if (dom.urlMaster) {
       dom.urlMaster.addEventListener('input', (e) => {
         state.webhooks.masterUrl = e.target.value.trim();
@@ -419,6 +415,56 @@
     if (tabId === 'clusters') renderMindmapView();
   }
 
+  /* --- Intercept File Import: Prompt Product Category FIRST --- */
+  function interceptFileImport(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      state.pendingFileText = e.target.result;
+      state.pendingFileName = file.name;
+
+      const cleanSuggestion = window.SubClusterEngine ? window.SubClusterEngine.sanitizeProductFamily(file.name) : "Fence Posts";
+      
+      if (dom.preImportFileName) dom.preImportFileName.textContent = file.name;
+      if (dom.preImportInputCategory) dom.preImportInputCategory.value = cleanSuggestion;
+
+      openModal(dom.preImportCategoryModal);
+    };
+    reader.readAsText(file);
+  }
+
+  function handleConfirmPreImportCategory() {
+    if (!state.pendingFileText) return;
+
+    const selectedCategory = (dom.preImportInputCategory ? dom.preImportInputCategory.value.trim() : '') || 'Fence Posts';
+    window.SubClusterEngine.setProductFamily(selectedCategory);
+
+    const res = window.CSVCleaner.processCSV(state.pendingFileText);
+
+    if (res.items.length === 0) {
+      showToast('Import Failed: No valid keywords found in CSV.', 'error');
+      closeModal(dom.preImportCategoryModal);
+      return;
+    }
+
+    state.executionTimeMs = res.summary.executionTimeMs || 0;
+    
+    // Tag every item with its explicit FocusTopic!
+    state.rawItems = res.items.map(item => ({
+      ...item,
+      FocusTopic: selectedCategory
+    }));
+
+    closeModal(dom.preImportCategoryModal);
+
+    runClassificationAndClustering();
+    renderImportSummary(res.summary);
+    showToast(`Processed ${res.items.length} keywords under category '${selectedCategory}' in ${state.executionTimeMs}ms!`, 'success');
+    
+    openCategoryDiscoveryModal();
+    saveStateToStorage();
+  }
+
   /* --- Reset Engine & Clear Cache --- */
   function handleResetCache() {
     try {
@@ -443,42 +489,6 @@
     } catch (e) {
       showToast('Failed to clear browser cache.', 'error');
     }
-  }
-
-  /* --- Data Ingestion & Enrichment --- */
-  function handleFileImport(file) {
-    const rawFileName = file ? file.name : "Products";
-    const inferredProduct = window.SubClusterEngine ? window.SubClusterEngine.sanitizeProductFamily(rawFileName) : "Products";
-
-    if (dom.inputProductFamily) dom.inputProductFamily.value = inferredProduct;
-    window.SubClusterEngine.setProductFamily(inferredProduct);
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const csvText = e.target.result;
-      const res = window.CSVCleaner.processCSV(csvText);
-
-      if (res.items.length === 0) {
-        showToast('Import Failed: No valid keywords found.', 'error');
-        return;
-      }
-
-      state.executionTimeMs = res.summary.executionTimeMs || 0;
-      
-      // Tag every imported item with its explicit FocusTopic!
-      state.rawItems = res.items.map(item => ({
-        ...item,
-        FocusTopic: inferredProduct
-      }));
-
-      runClassificationAndClustering();
-      renderImportSummary(res.summary);
-      showToast(`Imported ${res.items.length} keywords for Focus Topic '${inferredProduct}' in ${state.executionTimeMs}ms!`, 'success');
-      
-      openCategoryDiscoveryModal();
-      saveStateToStorage();
-    };
-    reader.readAsText(file);
   }
 
   function loadSampleDataset() {
@@ -526,16 +536,9 @@
       return;
     }
 
-    // Populate existing focus topics dropdown
-    const knownTopics = window.SubClusterEngine ? window.SubClusterEngine.getKnownFocusTopics() : ['Chainsaws', 'Fencing & Landscaping', 'Hedge Trimmers'];
-    if (dom.selectExistingProductFamily) {
-      dom.selectExistingProductFamily.innerHTML = knownTopics.map(t => `
-        <option value="${escapeHtml(t)}" ${t === window.SubClusterEngine.getProductFamily() ? 'selected' : ''}>📂 Existing Topic: ${escapeHtml(t)}</option>
-      `).join('') + '<option value="NEW_TOPIC">✏️ + Create New Focus Topic...</option>';
-    }
+    const currentFamily = window.SubClusterEngine ? window.SubClusterEngine.getProductFamily() : 'Fence Posts';
+    if (dom.discoveryActiveTopicName) dom.discoveryActiveTopicName.textContent = currentFamily;
 
-    const currentFamily = dom.inputProductFamily ? dom.inputProductFamily.value.trim() || 'Products' : 'Products';
-    window.SubClusterEngine.setProductFamily(currentFamily);
     state.discoveryProposals = window.SubClusterEngine.discoverDatasetCategories(state.classifiedItems, currentFamily);
     renderCategoryDiscoveryCards();
     openModal(dom.categoryDiscoveryModal);
@@ -608,9 +611,7 @@
   }
 
   function handleApplyDiscoveryCategories() {
-    const pf = dom.inputProductFamily ? dom.inputProductFamily.value.trim() || 'Products' : 'Products';
-    window.SubClusterEngine.setProductFamily(pf);
-
+    const pf = window.SubClusterEngine ? window.SubClusterEngine.getProductFamily() : 'Fence Posts';
     const selectedProposals = state.discoveryProposals.filter(p => p.isSelected);
 
     if (selectedProposals.length === 0) {
@@ -618,17 +619,12 @@
       return;
     }
 
-    // Tag current items with FocusTopic
-    state.classifiedItems.forEach(item => {
-      if (!item.FocusTopic) item.FocusTopic = pf;
-    });
-
     window.SubClusterEngine.applyDatasetCategoryProposals(selectedProposals);
     saveStateToStorage();
     closeModal(dom.categoryDiscoveryModal);
 
     renderMindmapView();
-    showToast(`Applied ${selectedProposals.length} categories for Focus Topic '${pf}' & generated Mindmap! ⚡`, 'success');
+    showToast(`Applied ${selectedProposals.length} categories for Product Category '${pf}' & generated Mindmap! ⚡`, 'success');
     switchTab('clusters');
   }
 
@@ -729,20 +725,11 @@
     dom.taxonomyTableBody.innerHTML = rowsHtml;
   }
 
-  /* --- Tab 3: Mindmap Renderer & Pillar Editor --- */
+  /* --- Tab 3: Mindmap Renderer (Immediate Display & Auto-Build) --- */
   function renderMindmapView() {
     if (!dom.mindmapCanvasContainer || !window.SubClusterEngine || !window.MindmapRenderer) return;
 
-    // Update Mindmap Focus Topic Dropdown Options
-    const knownTopics = window.SubClusterEngine.getKnownFocusTopics();
     const activeTopic = window.SubClusterEngine.getProductFamily();
-
-    if (dom.selectMindmapTopic) {
-      dom.selectMindmapTopic.innerHTML = knownTopics.map(t => `
-        <option value="${escapeHtml(t)}" ${t === activeTopic ? 'selected' : ''}>📂 Focus Topic: ${escapeHtml(t)}</option>
-      `).join('');
-    }
-
     const treeData = window.SubClusterEngine.buildTopicTree(state.classifiedItems, activeTopic);
 
     window.MindmapRenderer.renderMindmap(
@@ -963,7 +950,7 @@
   function refreshPillarAndMindmap() {
     renderMindmapView();
     if (state.activePillarBranch) {
-      const activeTopic = window.SubClusterEngine ? window.SubClusterEngine.getProductFamily() : 'Fencing & Landscaping';
+      const activeTopic = window.SubClusterEngine ? window.SubClusterEngine.getProductFamily() : 'Fence Posts';
       const updatedTree = window.SubClusterEngine.buildTopicTree(state.classifiedItems, activeTopic);
       const updatedBranch = (updatedTree.branches || []).find(b => b.id === state.activePillarBranch.id);
       if (updatedBranch) {

@@ -188,12 +188,7 @@
           <div class="card-header">
             <div>
               <h2 class="card-title"><span>🗺️</span> Semantic Topic Architecture & Mindmap Visualizer</h2>
-              <div style="display:flex; align-items:center; gap:0.6rem; margin-top:0.3rem;">
-                <label style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">Focus Topic Filter:</label>
-                <select class="select-filter" id="select-mindmap-topic" style="font-size:0.78rem; padding:0.25rem 0.65rem; min-width:200px;">
-                  <!-- Dynamic Topic Options -->
-                </select>
-              </div>
+              <p class="card-subtitle">Heuristically categorizes seed topics into sub-themes. Click any pillar header to expand into Full-Screen Editor!</p>
             </div>
             <button class="btn btn-primary btn-sm" id="btn-sweep-unclassified" title="Sweeps all remaining unassigned keywords into General Category so 100% get exported">
               🧹 Auto-Categorize Remaining Unclassified ⚡
@@ -291,6 +286,51 @@
        MODAL DIALOGS
        =================================================================== -->
 
+  <!-- Modal -1: PRE-IMPORT CATEGORY SELECTION PROMPT MODAL (REQUIRED BEFORE UPLOAD) -->
+  <div class="modal-backdrop" id="pre-import-category-modal">
+    <div class="modal-dialog" style="max-width:560px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <span style="font-size:1.5rem;">📥</span>
+          <div>
+            <h3 class="modal-title">Which Product Category is this CSV for?</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Required step: Specify the product family before populating the app.</p>
+          </div>
+        </div>
+        <button class="btn btn-icon" id="btn-close-pre-import-modal">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:1.25rem;">
+        <div style="margin-bottom:1rem; padding:0.75rem; background:rgba(0,122,255,0.06); border-radius:var(--radius-md); border:1px solid rgba(0,122,255,0.2);">
+          <span style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">Detected CSV File:</span>
+          <div id="pre-import-file-name" style="font-size:0.9rem; font-weight:700; color:var(--text-main); margin-top:0.2rem;">dataset.csv</div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:0.75rem;">
+          <label style="font-size:0.82rem; font-weight:700; color:var(--text-main);">
+            Select or Type Briants Product Category:
+          </label>
+          
+          <select class="select-filter" id="pre-import-select-category" style="width:100%; font-size:0.9rem; padding:0.6rem;">
+            <option value="Chainsaws">Chainsaws</option>
+            <option value="Fencing & Landscaping" selected>Fencing & Landscaping</option>
+            <option value="Hedge Trimmers">Hedge Trimmers</option>
+            <option value="Lawn Tractors">Lawn Tractors</option>
+            <option value="Paving Slabs">Paving Slabs</option>
+            <option value="NEW_CATEGORY">✏️ + Enter New Product Category...</option>
+          </select>
+
+          <input type="text" class="input-search" id="pre-import-input-category" value="Fence Posts" placeholder="Type category name (e.g. Timber Decking)..." style="width:100%; font-size:0.9rem; font-weight:600; display:block;">
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:flex-end; gap:0.75rem;">
+        <button class="btn btn-secondary" onclick="document.getElementById('btn-close-pre-import-modal').click();">Cancel</button>
+        <button class="btn btn-primary" id="btn-confirm-pre-import-category" style="padding:0.65rem 1.25rem;">Confirm Category & Process CSV ⚡</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal 0: DYNAMIC DATASET CATEGORY DISCOVERY & SETUP MODAL -->
   <div class="modal-backdrop" id="category-discovery-modal">
     <div class="modal-dialog" style="max-width:780px;">
@@ -298,31 +338,15 @@
         <div style="display:flex; align-items:center; gap:0.75rem;">
           <span style="font-size:1.5rem;">✨</span>
           <div>
-            <h3 class="modal-title">Select Focus Pillar Topic (Required)</h3>
-            <p style="font-size:0.8rem; color:var(--text-muted);">Assign your dataset to a Focus Topic so categories stay 100% isolated between product families:</p>
+            <h3 class="modal-title">Confirm Categories for Dataset</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Categories discovered for <strong id="discovery-active-topic-name" style="color:var(--primary);">Fence Posts</strong>:</p>
           </div>
         </div>
         <button class="btn btn-icon" id="btn-close-discovery-modal">✕</button>
       </div>
 
       <div class="modal-body" style="padding:1.25rem;">
-        <!-- Product Family Name Input -->
-        <div style="margin-bottom:1.25rem; padding:1rem; background:rgba(0,122,255,0.06); border-radius:var(--radius-md); border:1px solid rgba(0,122,255,0.2);">
-          <label style="font-size:0.82rem; font-weight:700; color:var(--text-main); display:block; margin-bottom:0.35rem;">
-            🏷️ Briants Master Focus Pillar Topic (REQUIRED):
-          </label>
-          <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:0.6rem;">
-            <select class="select-filter" id="select-existing-product-family" style="font-size:0.85rem; padding:0.5rem; width:100%;">
-              <!-- Existing Focus Topics -->
-            </select>
-            <input type="text" class="input-search" id="input-product-family" value="Fencing & Landscaping" placeholder="+ Or type new topic name..." style="width:100%; font-size:0.85rem; font-weight:600;">
-          </div>
-          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.4rem;">
-            Guarantees strict isolation! When viewing <strong>Chainsaws</strong> in Tab 3, <strong>Fencing</strong> keywords will be completely hidden.
-          </p>
-        </div>
-
-        <div id="discovery-proposals-container" style="display:flex; flex-direction:column; gap:1rem; max-height:50vh; overflow-y:auto; padding-right:0.5rem;">
+        <div id="discovery-proposals-container" style="display:flex; flex-direction:column; gap:1rem; max-height:55vh; overflow-y:auto; padding-right:0.5rem;">
           <!-- Dynamic Category Proposal Cards -->
         </div>
       </div>
