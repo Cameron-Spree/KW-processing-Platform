@@ -1,13 +1,23 @@
 /**
- * Enhanced Non-AI Sub-Clustering & Micro-Topic Audit Engine for Briants
- * Features Interactive Trigger Token Rule Editing per Category & LocalStorage Persistence.
+ * Enhanced Sub-Clustering & Dynamic Category Discovery Engine for Briants
+ * Scans incoming datasets (Hedge Trimmers, Chainsaws, Lawn Tractors, Fencing)
+ * to propose tailored product pillars with sample keywords, justifications, and trigger tags.
  */
 
 window.SubClusterEngine = (function () {
   'use strict';
 
-  // Primary Pillar Definitions
-  let subThemeDefinitions = [
+  // Active Sub-Theme Definitions (Can be reset per dataset)
+  let subThemeDefinitions = [];
+
+  // Manual Keyword Branch Overrides Map (kw.toLowerCase() -> branchId)
+  let manualOverrides = new Map();
+  let rawDatasetCache = [];
+
+  /**
+   * Default fallback sub-themes if none are loaded.
+   */
+  const defaultSubThemes = [
     {
       id: 'buying',
       label: 'Buying Guides & Comparisons',
@@ -17,7 +27,7 @@ window.SubClusterEngine = (function () {
       microTopics: [
         { id: 'buying_battery', label: 'Battery / Cordless', tokens: ['battery', 'cordless', 'electric', 'rechargeable'] },
         { id: 'buying_petrol', label: 'Petrol & Engine', tokens: ['petrol', 'gas', '2 stroke', 'engine'] },
-        { id: 'buying_small', label: 'Small & Mini Chainsaws', tokens: ['small', 'mini', 'compact', 'lightweight', 'handheld', 'one handed', 'top handle'] },
+        { id: 'buying_small', label: 'Small & Compact', tokens: ['small', 'mini', 'compact', 'lightweight', 'handheld', 'one handed'] },
         { id: 'buying_budget', label: 'Budget & Price Deals', tokens: ['cheap', 'budget', 'price', 'cost', 'deal', 'under', 'affordable'] }
       ]
     },
@@ -26,22 +36,22 @@ window.SubClusterEngine = (function () {
       label: 'Maintenance & Servicing',
       icon: '🛠️',
       color: '#ff9500',
-      tokens: ['sharpen', 'sharpener', 'oil', 'spark plug', 'clean', 'service', 'maintenance', 'mix ratio', 'fuel', '2 stroke', 'tension', 'troubleshooting', 'repair', 'how to fix', 'servicing'],
+      tokens: ['sharpen', 'sharpener', 'oil', 'spark plug', 'clean', 'service', 'maintenance', 'mix ratio', 'fuel', '2 stroke', 'tension', 'troubleshooting', 'repair', 'how to fix', 'servicing', 'lubricant', 'blade'],
       microTopics: [
         { id: 'maint_fuel', label: 'Fuel & Oil Mix Ratios', tokens: ['fuel', 'oil', 'mix ratio', '2 stroke', 'petrol mix', 'tank'] },
-        { id: 'maint_sharpen', label: 'Chain Sharpening & Files', tokens: ['sharpen', 'sharpener', 'file', 'filing', 'grinder', 'angle'] },
+        { id: 'maint_sharpen', label: 'Blade & Chain Sharpening', tokens: ['sharpen', 'sharpener', 'file', 'filing', 'grinder', 'angle'] },
         { id: 'maint_repair', label: 'Troubleshooting & Repairs', tokens: ['repair', 'service', 'won\'t start', 'spark plug', 'clean', 'tension', 'fix', 'troubleshooting'] }
       ]
     },
     {
       id: 'components',
-      label: 'Components & Spares',
+      label: 'Components, Attachments & Spares',
       icon: '⚙️',
       color: '#30b0c7',
-      tokens: ['bar', 'chain', 'sprocket', 'carburetor', 'starter', 'spares', 'parts', 'filter', '14 inch', '16 inch', '18 inch', 'blade', 'engine', 'motor', 'battery'],
+      tokens: ['bar', 'chain', 'sprocket', 'carburetor', 'starter', 'spares', 'parts', 'filter', 'blade', 'engine', 'motor', 'pole', 'extension', 'attachment', 'head'],
       microTopics: [
-        { id: 'comp_bars_chains', label: 'Guide Bars & Chains', tokens: ['bar', 'chain', '14 inch', '16 inch', '18 inch', 'drive links', 'gauge'] },
-        { id: 'comp_engine_spares', label: 'Carburetors & Filters', tokens: ['carburetor', 'filter', 'spark plug', 'starter', 'recoil', 'sprocket', 'spares'] }
+        { id: 'comp_blades_bars', label: 'Blades, Bars & Attachments', tokens: ['bar', 'chain', 'blade', 'pole', 'extension', 'attachment'] },
+        { id: 'comp_spares', label: 'Carburetors, Filters & Engine Spares', tokens: ['carburetor', 'filter', 'spark plug', 'starter', 'recoil', 'sprocket', 'spares'] }
       ]
     },
     {
@@ -49,10 +59,10 @@ window.SubClusterEngine = (function () {
       label: 'Safety & PPE',
       icon: '🛡️',
       color: '#ff2d55',
-      tokens: ['safety', 'ppe', 'trousers', 'chaps', 'helmet', 'boots', 'gloves', 'visor', 'protection', 'kickback', 'clothing', 'ear defenders', 'harness'],
+      tokens: ['safety', 'ppe', 'trousers', 'chaps', 'helmet', 'boots', 'gloves', 'visor', 'protection', 'kickback', 'clothing', 'ear defenders', 'harness', 'goggles'],
       microTopics: [
         { id: 'safe_clothing', label: 'Chaps, Trousers & Boots', tokens: ['trousers', 'chaps', 'boots', 'gloves', 'clothing', 'protection'] },
-        { id: 'safe_head_ear', label: 'Helmets, Visors & PPE', tokens: ['helmet', 'visor', 'ppe', 'ear defenders', 'safety', 'harness'] }
+        { id: 'safe_head_ear', label: 'Helmets, Visors & Goggles', tokens: ['helmet', 'visor', 'ppe', 'ear defenders', 'safety', 'harness', 'goggles'] }
       ]
     },
     {
@@ -60,11 +70,11 @@ window.SubClusterEngine = (function () {
       label: 'Brands & Manufacturers',
       icon: '🏷️',
       color: '#8b5cf6',
-      tokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'titan', 'mountfield', 'einhell', 'milwaukee', 'honda', 'petzl', 'felco', 'celotex', 'catnic'],
+      tokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'titan', 'mountfield', 'einhell', 'milwaukee', 'honda', 'petzl', 'felco', 'celotex', 'catnic', 'bosch', 'ryobi'],
       microTopics: [
-        { id: 'brand_stihl', label: 'STIHL Models & Gear', tokens: ['stihl', 'ms 180', 'ms 211', 'gta 26'] },
-        { id: 'brand_husqvarna', label: 'Husqvarna Models', tokens: ['husqvarna', '135', '435', '550'] },
-        { id: 'brand_other', label: 'Makita, DeWalt & Others', tokens: ['makita', 'dewalt', 'titan', 'einhell', 'mountfield'] }
+        { id: 'brand_stihl', label: 'STIHL Gear & Trimmers', tokens: ['stihl', 'hs 45', 'hla', 'gta'] },
+        { id: 'brand_husqvarna', label: 'Husqvarna Models', tokens: ['husqvarna', '115i', '520i'] },
+        { id: 'brand_other', label: 'Makita, DeWalt & Others', tokens: ['makita', 'dewalt', 'titan', 'einhell', 'bosch', 'ryobi'] }
       ]
     },
     {
@@ -72,17 +82,154 @@ window.SubClusterEngine = (function () {
       label: 'Use Cases & Applications',
       icon: '🌲',
       color: '#10b981',
-      tokens: ['pruning', 'firewood', 'logging', 'felling', 'arborist', 'tree surgeon', 'home use', 'garden', 'heavy duty', 'commercial', 'slabs', 'diy', 'construction'],
+      tokens: ['pruning', 'firewood', 'logging', 'felling', 'arborist', 'tree surgeon', 'home use', 'garden', 'heavy duty', 'commercial', 'slabs', 'diy', 'construction', 'hedge', 'trimming', 'high hedge', 'shrub'],
       microTopics: [
-        { id: 'use_garden', label: 'Garden & Firewood', tokens: ['garden', 'firewood', 'pruning', 'home use', 'diy'] },
-        { id: 'use_pro', label: 'Arborist & Logging', tokens: ['arborist', 'felling', 'logging', 'tree surgeon', 'heavy duty', 'commercial'] }
+        { id: 'use_garden', label: 'Garden & Hedge Trimming', tokens: ['garden', 'hedge', 'trimming', 'pruning', 'shrub', 'home use', 'diy'] },
+        { id: 'use_pro', label: 'High Reach & Commercial', tokens: ['arborist', 'felling', 'commercial', 'high hedge', 'heavy duty', 'pole'] }
       ]
     }
   ];
 
-  // Manual Keyword Branch Overrides Map (kw.toLowerCase() -> branchId)
-  let manualOverrides = new Map();
-  let rawDatasetCache = [];
+  subThemeDefinitions = JSON.parse(JSON.stringify(defaultSubThemes));
+
+  /**
+   * Dynamic Category Discovery Engine: Scans raw dataset to propose dataset-specific categories.
+   */
+  function discoverDatasetCategories(classifiedItems) {
+    if (!classifiedItems || classifiedItems.length === 0) return [];
+
+    const keywords = classifiedItems.map(i => (i.Keyword || '').toLowerCase().trim());
+    const totalCount = keywords.length;
+
+    // Pattern definitions to detect dataset features
+    const discoveryRules = [
+      {
+        id: 'disc_poles_longreach',
+        label: 'Long Reach & Telescopic Pole Tools',
+        icon: '🔭',
+        color: '#007aff',
+        testTokens: ['long reach', 'telescopic', 'pole', 'extension', 'high hedge', 'reach', 'tall'],
+        suggestedTokens: ['long reach', 'telescopic', 'pole', 'extension', 'high hedge', 'reach']
+      },
+      {
+        id: 'disc_battery_cordless',
+        label: 'Cordless & Battery Power Systems',
+        icon: '⚡',
+        color: '#10b981',
+        testTokens: ['battery', 'cordless', 'electric', 'rechargeable', '18v', '36v', '40v', 'lithium'],
+        suggestedTokens: ['battery', 'cordless', 'electric', 'rechargeable', '18v', '36v']
+      },
+      {
+        id: 'disc_sharpening_care',
+        label: 'Blade & Cutter Sharpening & Lubrication',
+        icon: '🔪',
+        color: '#ff9500',
+        testTokens: ['sharpen', 'sharpener', 'file', 'filing', 'blade', 'lubricant', 'cleaner', 'spray', 'resin'],
+        suggestedTokens: ['sharpen', 'sharpener', 'file', 'blade', 'lubricant', 'spray', 'resin']
+      },
+      {
+        id: 'disc_petrol_engine',
+        label: 'Petrol Engines & Fuel Maintenance',
+        icon: '⛽',
+        color: '#ff2d55',
+        testTokens: ['petrol', 'gas', '2 stroke', 'engine', 'fuel', 'mix ratio', 'spark plug', 'carburetor'],
+        suggestedTokens: ['petrol', 'gas', '2 stroke', 'engine', 'fuel', 'spark plug']
+      },
+      {
+        id: 'disc_buying_reviews',
+        label: 'Buying Guides, Reviews & Best Deals',
+        icon: '🛒',
+        color: '#30b0c7',
+        testTokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'cheap', 'cost', 'deal', 'hire'],
+        suggestedTokens: ['best', 'top', 'vs', 'review', 'comparison', 'buying', 'price', 'cheap', 'hire']
+      },
+      {
+        id: 'disc_brands_models',
+        label: 'Brand Models & Spares',
+        icon: '🏷️',
+        color: '#8b5cf6',
+        testTokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'ryobi', 'titan', 'einhell', 'mountfield'],
+        suggestedTokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'ryobi', 'titan']
+      },
+      {
+        id: 'disc_safety_ppe',
+        label: 'Safety Equipment & Protective PPE',
+        icon: '🛡️',
+        color: '#af52de',
+        testTokens: ['safety', 'ppe', 'goggles', 'glasses', 'gloves', 'helmet', 'visor', 'harness', 'trousers', 'boots'],
+        suggestedTokens: ['safety', 'ppe', 'goggles', 'glasses', 'gloves', 'helmet', 'visor']
+      }
+    ];
+
+    const proposals = [];
+
+    discoveryRules.forEach(rule => {
+      const matchingKwList = [];
+      let totalMatchingVol = 0;
+
+      classifiedItems.forEach(item => {
+        const kw = (item.Keyword || '').toLowerCase().trim();
+        for (const token of rule.testTokens) {
+          if (kw.includes(token)) {
+            matchingKwList.push(item.Keyword);
+            totalMatchingVol += (item['Search Volume'] || 0);
+            break;
+          }
+        }
+      });
+
+      if (matchingKwList.length > 0) {
+        // Sample up to 4 keywords for display
+        const sampleKeywords = matchingKwList.slice(0, 4);
+
+        proposals.push({
+          id: rule.id,
+          label: rule.label,
+          icon: rule.icon,
+          color: rule.color,
+          matchCount: matchingKwList.length,
+          totalVolume: totalMatchingVol,
+          percentageOfDataset: Math.round((matchingKwList.length / totalCount) * 100),
+          sampleKeywords: sampleKeywords,
+          tokens: rule.suggestedTokens,
+          isSelected: true
+        });
+      }
+    });
+
+    return proposals;
+  }
+
+  /**
+   * Apply dataset category proposals: Resets subThemeDefinitions to selected categories.
+   */
+  function applyDatasetCategoryProposals(selectedProposals) {
+    if (!selectedProposals || selectedProposals.length === 0) return;
+
+    // Reset sub-theme definitions
+    subThemeDefinitions = selectedProposals.map(prop => {
+      const autoMicroTopics = prop.tokens.map((token, idx) => {
+        const formattedLabel = token.charAt(0).toUpperCase() + token.slice(1);
+        return {
+          id: `${prop.id}_micro_${idx}`,
+          label: `${formattedLabel} Focus`,
+          tokens: [token]
+        };
+      });
+
+      return {
+        id: prop.id,
+        label: prop.label,
+        icon: prop.icon,
+        color: prop.color,
+        tokens: prop.tokens,
+        microTopics: autoMicroTopics
+      };
+    });
+
+    // Reset manual overrides so fresh dataset gets cleanly auto-sorted into new categories!
+    manualOverrides.clear();
+  }
 
   /**
    * Build 3-level Mindmap Data Tree with keyword audit & micro-topic metrics.
@@ -413,14 +560,7 @@ window.SubClusterEngine = (function () {
     if (!savedState) return;
 
     if (savedState.subThemeDefinitions && Array.isArray(savedState.subThemeDefinitions)) {
-      savedState.subThemeDefinitions.forEach(savedDef => {
-        const idx = subThemeDefinitions.findIndex(st => st.id === savedDef.id);
-        if (idx >= 0) {
-          subThemeDefinitions[idx] = savedDef;
-        } else {
-          subThemeDefinitions.push(savedDef);
-        }
-      });
+      subThemeDefinitions = savedState.subThemeDefinitions;
     }
 
     if (savedState.manualOverrides && Array.isArray(savedState.manualOverrides)) {
@@ -430,6 +570,8 @@ window.SubClusterEngine = (function () {
 
   return {
     buildTopicTree: buildTopicTree,
+    discoverDatasetCategories: discoverDatasetCategories,
+    applyDatasetCategoryProposals: applyDatasetCategoryProposals,
     bulkDiscardBranch: bulkDiscardBranch,
     addCustomCategory: addCustomCategory,
     autoFillBranch: autoFillBranch,

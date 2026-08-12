@@ -48,6 +48,7 @@
       </div>
 
       <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" id="btn-discover-categories" title="Discover & Setup Categories for active dataset">🔍 Setup Dataset Categories</button>
         <button class="btn btn-secondary btn-sm" id="btn-load-sample">Load Master Dataset ⚡</button>
         <button class="btn btn-icon" id="btn-theme-toggle" title="Toggle Light/Dark Theme">🌙</button>
       </div>
@@ -273,6 +274,36 @@
   <!-- ===================================================================
        MODAL DIALOGS
        =================================================================== -->
+
+  <!-- Modal 0: DYNAMIC DATASET CATEGORY DISCOVERY & SETUP MODAL -->
+  <div class="modal-backdrop" id="category-discovery-modal">
+    <div class="modal-dialog" style="max-width:780px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <span style="font-size:1.5rem;">✨</span>
+          <div>
+            <h3 class="modal-title">Confirm Categories for Dataset</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted);">The engine scanned your CSV keywords and discovered these product-specific Pillars & Categories:</p>
+          </div>
+        </div>
+        <button class="btn btn-icon" id="btn-close-discovery-modal">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:1.25rem;">
+        <div id="discovery-proposals-container" style="display:flex; flex-direction:column; gap:1rem; max-height:60vh; overflow-y:auto; padding-right:0.5rem;">
+          <!-- Dynamic Category Proposal Cards -->
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <span style="font-size:0.78rem; color:var(--text-muted);" id="discovery-selected-count">Select categories to build Mindmap</span>
+        <div style="display:flex; gap:0.75rem;">
+          <button class="btn btn-secondary" onclick="document.getElementById('btn-close-discovery-modal').click();">Cancel</button>
+          <button class="btn btn-primary" id="btn-apply-discovery-categories">Apply Selected Categories & Build Mindmap ⚡</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal 1: Taxonomy Rules Editor -->
   <div class="modal-backdrop" id="rule-modal">

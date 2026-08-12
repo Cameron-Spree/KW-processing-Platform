@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Dynamic Sub-Category Headline Generation & Fresh Batch Append/Overwrite Support.
+ * Features Dynamic Category Discovery & Proposal Step per CSV Dataset.
  */
 
 (function () {
@@ -22,6 +22,7 @@
       sheetName: 'Raw Data Sheet',
       pushMode: 'append'
     },
+    discoveryProposals: [],
     executionTimeMs: 0,
     activeReassignKw: null,
     activePillarBranch: null,
@@ -52,6 +53,7 @@
       metricClusters: document.getElementById('metric-clusters'),
       metricSpeed: document.getElementById('metric-speed'),
       btnThemeToggle: document.getElementById('btn-theme-toggle'),
+      btnDiscoverCategories: document.getElementById('btn-discover-categories'),
 
       // Navigation
       navTabs: document.querySelectorAll('.nav-tab'),
@@ -83,6 +85,12 @@
       btnAppsScriptModal: document.getElementById('btn-apps-script-modal'),
 
       // Modals
+      categoryDiscoveryModal: document.getElementById('category-discovery-modal'),
+      btnCloseDiscoveryModal: document.getElementById('btn-close-discovery-modal'),
+      discoveryProposalsContainer: document.getElementById('discovery-proposals-container'),
+      btnApplyDiscoveryCategories: document.getElementById('btn-apply-discovery-categories'),
+      discoverySelectedCount: document.getElementById('discovery-selected-count'),
+
       ruleModal: document.getElementById('rule-modal'),
       btnCloseRuleModal: document.getElementById('btn-close-rule-modal'),
       btnSaveRules: document.getElementById('btn-save-rules'),
@@ -165,12 +173,23 @@
       });
     }
 
-    // 3. Load Preset Sample Data Button
+    // 3. Header Action Buttons
     if (dom.btnLoadSample) {
       dom.btnLoadSample.addEventListener('click', loadSampleDataset);
     }
+    if (dom.btnDiscoverCategories) {
+      dom.btnDiscoverCategories.addEventListener('click', openCategoryDiscoveryModal);
+    }
 
-    // 4. Taxonomy Filtering & Rule Modal
+    // 4. Discovery Modal Actions
+    if (dom.btnCloseDiscoveryModal) {
+      dom.btnCloseDiscoveryModal.addEventListener('click', () => closeModal(dom.categoryDiscoveryModal));
+    }
+    if (dom.btnApplyDiscoveryCategories) {
+      dom.btnApplyDiscoveryCategories.addEventListener('click', handleApplyDiscoveryCategories);
+    }
+
+    // 5. Taxonomy Filtering & Rule Modal
     if (dom.inputTaxonomySearch) {
       dom.inputTaxonomySearch.addEventListener('input', (e) => {
         state.filters.search = e.target.value;
@@ -204,7 +223,7 @@
       dom.btnSaveRules.addEventListener('click', handleSaveRules);
     }
 
-    // 5. Pillar Editor Modal Controls
+    // 6. Pillar Editor Modal Controls
     if (dom.btnClosePillarEditor) {
       dom.btnClosePillarEditor.addEventListener('click', () => closeModal(dom.pillarEditorModal));
     }
@@ -226,7 +245,7 @@
       });
     }
 
-    // 6. Reassign Modal Controls
+    // 7. Reassign Modal Controls
     if (dom.btnCloseReassignModal) {
       dom.btnCloseReassignModal.addEventListener('click', () => closeModal(dom.reassignModal));
     }
@@ -234,7 +253,7 @@
       dom.btnSaveReassign.addEventListener('click', handleSaveReassign);
     }
 
-    // 7. New Custom Category Modal Controls
+    // 8. New Custom Category Modal Controls
     if (dom.btnCloseCatModal) {
       dom.btnCloseCatModal.addEventListener('click', () => closeModal(dom.newCategoryModal));
     }
@@ -242,7 +261,7 @@
       dom.btnSaveNewCat.addEventListener('click', handleSaveNewCat);
     }
 
-    // 8. Auto-Save Master Webhook URL, Sheet Name & Push Mode
+    // 9. Auto-Save Master Webhook URL, Sheet Name & Push Mode
     if (dom.urlMaster) {
       dom.urlMaster.addEventListener('input', (e) => {
         state.webhooks.masterUrl = e.target.value.trim();
@@ -354,7 +373,10 @@
       state.rawItems = res.items;
       runClassificationAndClustering();
       renderImportSummary(res.summary);
-      showToast(`Imported & enriched ${res.items.length} keywords in ${state.executionTimeMs}ms!`, 'success');
+      showToast(`Imported ${res.items.length} keywords in ${state.executionTimeMs}ms!`, 'success');
+      
+      // Auto-open Category Discovery Modal for newly loaded dataset!
+      openCategoryDiscoveryModal();
       saveStateToStorage();
     };
     reader.readAsText(file);
@@ -395,6 +417,102 @@
     state.clusters = window.ClusteringEngine.generateClusters(state.classifiedItems);
     updateHeaderMetrics();
     updateUI();
+  }
+
+  /* --- Dynamic Category Discovery Step --- */
+  function openCategoryDiscoveryModal() {
+    if (!state.classifiedItems || state.classifiedItems.length === 0) {
+      showToast('Please import a CSV dataset first.', 'error');
+      return;
+    }
+
+    state.discoveryProposals = window.SubClusterEngine.discoverDatasetCategories(state.classifiedItems);
+    renderCategoryDiscoveryCards();
+    openModal(dom.categoryDiscoveryModal);
+  }
+
+  function renderCategoryDiscoveryCards() {
+    if (!dom.discoveryProposalsContainer) return;
+
+    if (state.discoveryProposals.length === 0) {
+      dom.discoveryProposalsContainer.innerHTML = `
+        <div style="text-align:center; padding:2rem; color:var(--text-muted);">
+          No dataset specific categories discovered. Using default categories.
+        </div>
+      `;
+      return;
+    }
+
+    const cardsHtml = state.discoveryProposals.map((prop, idx) => {
+      const samplesText = prop.sampleKeywords.map(k => `"${escapeHtml(k)}"`).join(', ');
+      const tokensBadges = prop.tokens.map(t => `<span class="badge-tag" style="background:rgba(0,122,255,0.08); color:var(--primary);">${escapeHtml(t)}</span>`).join(' ');
+
+      return `
+        <div class="card" style="padding:1rem; border:1px solid var(--border-strong); background:rgba(255,255,255,0.85); box-shadow:var(--shadow-sm);">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem;">
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <input type="checkbox" class="chk-discovery-prop" data-idx="${idx}" ${prop.isSelected ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;">
+              <div>
+                <h4 style="font-size:0.95rem; font-weight:700; color:var(--text-main); margin-bottom:0.15rem;">
+                  ${prop.icon} ${escapeHtml(prop.label)}
+                </h4>
+                <div style="font-size:0.75rem; color:var(--text-muted);">
+                  <strong>${prop.matchCount} keywords</strong> (${prop.percentageOfDataset}% of dataset) • <strong>${(prop.totalVolume || 0).toLocaleString()}</strong> monthly searches
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:0.75rem; padding-top:0.6rem; border-top:1px solid var(--border-subtle); font-size:0.78rem;">
+            <div style="color:var(--text-muted); margin-bottom:0.4rem;">
+              <strong>Matching Search Terms:</strong> <em>${samplesText}</em>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+              <strong style="color:var(--text-muted); font-size:0.75rem;">Auto-Sort Tokens:</strong> ${tokensBadges}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    dom.discoveryProposalsContainer.innerHTML = cardsHtml;
+
+    // Wire checkbox updates
+    const chks = dom.discoveryProposalsContainer.querySelectorAll('.chk-discovery-prop');
+    chks.forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        if (state.discoveryProposals[idx]) {
+          state.discoveryProposals[idx].isSelected = e.target.checked;
+        }
+        updateDiscoverySelectedCount();
+      });
+    });
+
+    updateDiscoverySelectedCount();
+  }
+
+  function updateDiscoverySelectedCount() {
+    if (!dom.discoverySelectedCount) return;
+    const selected = state.discoveryProposals.filter(p => p.isSelected);
+    dom.discoverySelectedCount.textContent = `Selected ${selected.length} of ${state.discoveryProposals.length} proposed categories`;
+  }
+
+  function handleApplyDiscoveryCategories() {
+    const selectedProposals = state.discoveryProposals.filter(p => p.isSelected);
+
+    if (selectedProposals.length === 0) {
+      showToast('Please select at least 1 category.', 'error');
+      return;
+    }
+
+    window.SubClusterEngine.applyDatasetCategoryProposals(selectedProposals);
+    saveStateToStorage();
+    closeModal(dom.categoryDiscoveryModal);
+
+    renderMindmapView();
+    showToast(`Applied ${selectedProposals.length} product categories & generated Mindmap! ⚡`, 'success');
+    switchTab('clusters');
   }
 
   /* --- Rendering UI --- */
@@ -819,8 +937,7 @@
 
   function showToast(msg, type = 'info') {
     if (!dom.toastContainer) return;
-    const toast = document.createElement('div');
-    toast.className = 'toast';
+    const toast.className = 'toast';
     toast.innerHTML = `
       <span style="color:${type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#3b82f6')};">●</span>
       <span>${escapeHtml(msg)}</span>
@@ -871,6 +988,7 @@
 
   // Global Exports for inline onclicks
   window.BriantsApp = {
-    refreshMindmap: renderMindmapView
+    refreshMindmap: renderMindmapView,
+    openCategoryDiscoveryModal: openCategoryDiscoveryModal
   };
 })();
