@@ -1,8 +1,6 @@
 /**
  * Enhanced Sub-Clustering & Dynamic Category Discovery Engine for Briants
- * Features UNIVERSAL N-Gram Keyword Feature Extraction Discovery.
- * Automatically analyzes incoming CSV keywords to extract top terms (paving, decking, tractors, saws)
- * and generate dataset-native categories without requiring hardcoded templates!
+ * Features Smart Product Topic Sanitizer & Clean Concise Category Titles!
  */
 
 window.SubClusterEngine = (function () {
@@ -11,11 +9,24 @@ window.SubClusterEngine = (function () {
   let subThemeDefinitions = [];
   let manualOverrides = new Map();
   let rawDatasetCache = [];
-  let activeProductFamily = 'Products';
+  let activeProductFamily = 'Fence Posts';
+
+  /**
+   * Helper to clean Product Family names (e.g. "DataCubeX Research Keywords Fence Posts" -> "Fence Posts")
+   */
+  function sanitizeProductFamily(rawName) {
+    if (!rawName) return 'Products';
+    let clean = String(rawName).replace(/\.[^/.]+$/, '');
+    const boilerplateRegex = /(datacubex|brightedge|research|keywords|export|report|dataset|download|master|briants|list|seo)/gi;
+    clean = clean.replace(boilerplateRegex, '');
+    clean = clean.replace(/[^a-zA-Z0-9 &]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!clean) return 'Products';
+    return clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  }
 
   function setProductFamily(familyName) {
     if (familyName && familyName.trim()) {
-      activeProductFamily = familyName.trim();
+      activeProductFamily = sanitizeProductFamily(familyName);
     }
   }
 
@@ -23,16 +34,12 @@ window.SubClusterEngine = (function () {
     return activeProductFamily;
   }
 
-  /**
-   * Stop words to filter out when analyzing dataset N-grams.
-   */
   const stopWords = new Set([
     'and', 'the', 'for', 'in', 'to', 'a', 'of', 'with', 'on', 'at', 'by', 'from', 'is', 'are', 'it', 'or', 'an', 'be', 'how', 'what', 'which', 'where', 'why', 'can', 'do', 'does', 'near', 'me', 'uk'
   ]);
 
   /**
-   * Universal Dataset Category Synthesizer (N-Gram Feature Extraction).
-   * Dynamically inspects ANY CSV (paving, decking, tractors, fencing, tools) to propose natural categories!
+   * Universal Dataset Category Synthesizer with Clean Concise Category Titles.
    */
   function discoverDatasetCategories(classifiedItems, productFamily = activeProductFamily) {
     setProductFamily(productFamily);
@@ -42,7 +49,6 @@ window.SubClusterEngine = (function () {
     const totalCount = keywords.length;
     const pf = activeProductFamily;
 
-    // 1. Extract N-Gram frequency & volume map
     const wordFreq = new Map();
     const phraseFreq = new Map();
 
@@ -51,7 +57,6 @@ window.SubClusterEngine = (function () {
       const vol = item['Search Volume'] || 0;
       const tokens = kw.split(/[^a-z0-9]+/g).filter(t => t.length > 2 && !stopWords.has(t));
 
-      // Single word counts
       tokens.forEach(t => {
         if (!wordFreq.has(t)) wordFreq.set(t, { count: 0, vol: 0 });
         const entry = wordFreq.get(t);
@@ -59,7 +64,6 @@ window.SubClusterEngine = (function () {
         entry.vol += vol;
       });
 
-      // 2-gram phrase counts
       for (let i = 0; i < tokens.length - 1; i++) {
         const phrase = `${tokens[i]} ${tokens[i + 1]}`;
         if (!phraseFreq.has(phrase)) phraseFreq.set(phrase, { count: 0, vol: 0 });
@@ -69,7 +73,7 @@ window.SubClusterEngine = (function () {
       }
     });
 
-    // 2. Classify keywords into universal intent & functional clusters
+    // Clean, punchy category rule templates
     const universalClusters = [
       {
         id: 'cluster_materials_types',
@@ -81,7 +85,7 @@ window.SubClusterEngine = (function () {
       },
       {
         id: 'cluster_install_care',
-        label: `${pf} Installation, Tools & Maintenance`,
+        label: `Installation, Repairs & Maintenance`,
         icon: '🛠️',
         color: '#ff9500',
         tokens: ['install', 'installation', 'jointing', 'grout', 'primer', 'sealant', 'cleaner', 'sharpen', 'sharpener', 'treatment', 'paint', 'stain', 'preservative', 'fix', 'repair', 'lay', 'laying', 'oil', 'lubricant'],
@@ -89,7 +93,7 @@ window.SubClusterEngine = (function () {
       },
       {
         id: 'cluster_power_attach',
-        label: `${pf} Power Systems & Attachments`,
+        label: `Poles, Power & Attachments`,
         icon: '⚡',
         color: '#10b981',
         tokens: ['battery', 'cordless', 'electric', 'petrol', '2 stroke', 'engine', 'pole', 'extension', 'long reach', 'attachment', 'blade', 'chain', 'bar', 'driveway', 'pathway'],
@@ -97,7 +101,7 @@ window.SubClusterEngine = (function () {
       },
       {
         id: 'cluster_buying_pricing',
-        label: `${pf} Buying Guides, Prices & Cost Estimates`,
+        label: `Buying Guides, Prices & Deals`,
         icon: '🛒',
         color: '#30b0c7',
         tokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'cheap', 'cost', 'deal', 'hire', 'for sale', 'per m2', 'per metre', 'quote', 'cost per'],
@@ -105,7 +109,7 @@ window.SubClusterEngine = (function () {
       },
       {
         id: 'cluster_brands_ranges',
-        label: `${pf} Brand Ranges & Supplier Gear`,
+        label: `Brand Models & Supplier Ranges`,
         icon: '🏷️',
         color: '#8b5cf6',
         tokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'ryobi', 'titan', 'marshalls', 'bradstone', 'stonegate', 'jacksons', 'grange'],
@@ -113,7 +117,7 @@ window.SubClusterEngine = (function () {
       },
       {
         id: 'cluster_safety_ppe',
-        label: `${pf} Safety Equipment & Protective PPE`,
+        label: `Safety & Protective Gear`,
         icon: '🛡️',
         color: '#af52de',
         tokens: ['safety', 'ppe', 'goggles', 'glasses', 'gloves', 'helmet', 'visor', 'harness', 'trousers', 'boots', 'chaps'],
@@ -121,7 +125,7 @@ window.SubClusterEngine = (function () {
       },
       {
         id: 'cluster_general_terms',
-        label: `General ${pf} Terms & Applications`,
+        label: `General ${pf} Terms`,
         icon: '🌿',
         color: '#14b8a6',
         tokens: ['paving', 'decking', 'fencing', 'fence', 'trimmer', 'cutter', 'mower', 'saw', 'tool', 'equipment', 'machinery', 'garden', 'yard', 'uk'],
@@ -129,7 +133,6 @@ window.SubClusterEngine = (function () {
       }
     ];
 
-    // Populate top matching N-grams into suggested tokens for discovered clusters
     const proposals = [];
 
     universalClusters.forEach(cluster => {
@@ -168,19 +171,18 @@ window.SubClusterEngine = (function () {
       }
     });
 
-    // If dataset contains custom N-grams not captured by standard clusters, dynamically synthesize a Top Keyword Cluster!
+    // Top Phrase Specific Cluster synthesis if needed
     if (proposals.length === 0 || totalCount > 50) {
-      // Find top phrases in dataset
       const topPhrases = Array.from(phraseFreq.entries())
         .sort((a, b) => b[1].vol - a[1].vol)
         .slice(0, 4)
         .map(p => p[0]);
 
       if (topPhrases.length > 0) {
-        const topPhraseLabel = topPhrases[0].charAt(0).toUpperCase() + topPhrases[0].slice(1);
+        const topPhraseLabel = topPhrases[0].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         proposals.unshift({
           id: `cluster_dataset_top_${topPhrases[0].replace(/[^a-z0-9]/g, '_')}`,
-          label: `${pf} Focus: ${topPhraseLabel} Ranges`,
+          label: `${topPhraseLabel} Key Ranges`,
           icon: '✨',
           color: '#ec4899',
           matchCount: Math.round(totalCount * 0.4),
@@ -231,7 +233,7 @@ window.SubClusterEngine = (function () {
     if (!generalBranch) {
       generalBranch = {
         id: `cluster_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_general`,
-        label: `General ${pf} Terms & Category Terms`,
+        label: `General ${pf} Terms`,
         icon: '🌿',
         color: '#14b8a6',
         tokens: ['paving', 'decking', 'fencing', 'fence', 'timber', 'wood', 'trimmer', 'cutter', 'garden', 'uk'],
@@ -258,7 +260,7 @@ window.SubClusterEngine = (function () {
     subThemeDefinitions = [];
     manualOverrides.clear();
     rawDatasetCache = [];
-    activeProductFamily = 'Products';
+    activeProductFamily = 'Fence Posts';
   }
 
   function buildTopicTree(classifiedItems, seedTopicFilter = 'all') {
@@ -572,6 +574,7 @@ window.SubClusterEngine = (function () {
     discoverDatasetCategories: discoverDatasetCategories,
     applyDatasetCategoryProposals: applyDatasetCategoryProposals,
     sweepUnclassifiedToCatchAll: sweepUnclassifiedToCatchAll,
+    sanitizeProductFamily: sanitizeProductFamily,
     setProductFamily: setProductFamily,
     getProductFamily: getProductFamily,
     clearEngineState: clearEngineState,

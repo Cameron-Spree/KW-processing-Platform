@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Features Universal N-Gram Dataset Category Synthesizer for ANY Product Line (Paving, Decking, Tractors, Tools).
+ * Features Smart Product Topic Sanitizer & Clean Concise Category Titles.
  */
 
 (function () {
@@ -425,13 +425,8 @@
 
   /* --- Data Ingestion & Enrichment --- */
   function handleFileImport(file) {
-    const rawFileName = file ? file.name.replace(/\.[^/.]+$/, "") : "Products";
-    let inferredProduct = rawFileName.replace(/[^a-zA-Z0-9 &]/g, " ").trim();
-    if (!inferredProduct || inferredProduct.toLowerCase().includes("dataset") || inferredProduct.toLowerCase().includes("export")) {
-      inferredProduct = "Products";
-    }
-    // Clean Title Case formatting (e.g. "paving_slabs" -> "Paving Slabs")
-    inferredProduct = inferredProduct.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    const rawFileName = file ? file.name : "Products";
+    const inferredProduct = window.SubClusterEngine ? window.SubClusterEngine.sanitizeProductFamily(rawFileName) : "Products";
 
     if (dom.inputProductFamily) dom.inputProductFamily.value = inferredProduct;
     window.SubClusterEngine.setProductFamily(inferredProduct);
