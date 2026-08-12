@@ -937,7 +937,8 @@
 
   function showToast(msg, type = 'info') {
     if (!dom.toastContainer) return;
-    const toast.className = 'toast';
+    const toast = document.createElement('div');
+    toast.className = 'toast';
     toast.innerHTML = `
       <span style="color:${type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#3b82f6')};">●</span>
       <span>${escapeHtml(msg)}</span>
