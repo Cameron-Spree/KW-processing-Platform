@@ -49,6 +49,7 @@
 
       <div class="header-actions">
         <button class="btn btn-secondary btn-sm" id="btn-discover-categories" title="Discover & Setup Categories for active dataset">🔍 Setup Dataset Categories</button>
+        <button class="btn btn-outline btn-sm" id="btn-reset-cache-modal" style="color:#ef4444; border-color:rgba(239,68,68,0.3);" title="Clear all browser cache and start fresh">🧹 Reset Cache</button>
         <button class="btn btn-secondary btn-sm" id="btn-load-sample">Load Master Dataset ⚡</button>
         <button class="btn btn-icon" id="btn-theme-toggle" title="Toggle Light/Dark Theme">🌙</button>
       </div>
@@ -292,15 +293,26 @@
         <div style="display:flex; align-items:center; gap:0.75rem;">
           <span style="font-size:1.5rem;">✨</span>
           <div>
-            <h3 class="modal-title">Confirm Categories for Dataset</h3>
-            <p style="font-size:0.8rem; color:var(--text-muted);">The engine scanned your CSV keywords and discovered these product-specific Pillars & Categories:</p>
+            <h3 class="modal-title">Confirm Product Family & Setup Categories</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Specify your Briants Product Topic to isolate categories and auto-generate tailored pillars:</p>
           </div>
         </div>
         <button class="btn btn-icon" id="btn-close-discovery-modal">✕</button>
       </div>
 
       <div class="modal-body" style="padding:1.25rem;">
-        <div id="discovery-proposals-container" style="display:flex; flex-direction:column; gap:1rem; max-height:60vh; overflow-y:auto; padding-right:0.5rem;">
+        <!-- Product Family Name Input -->
+        <div style="margin-bottom:1.25rem; padding:1rem; background:rgba(0,122,255,0.06); border-radius:var(--radius-md); border:1px solid rgba(0,122,255,0.2);">
+          <label style="font-size:0.82rem; font-weight:700; color:var(--text-main); display:block; margin-bottom:0.35rem;">
+            🏷️ Briants Master Product Topic / Family:
+          </label>
+          <input type="text" class="input-search" id="input-product-family" value="Chainsaws" placeholder="e.g. Chainsaws, Hedge Trimmers, Fencing & Landscaping, Lawn Tractors" style="width:100%; font-size:0.9rem; font-weight:600;">
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.3rem;">
+            Isolates categories (e.g. <em>Hedge Trimmer Safety & PPE</em> vs <em>Chainsaw Safety & PPE</em>) so product batches stay completely separate in your Master Sheet export!
+          </p>
+        </div>
+
+        <div id="discovery-proposals-container" style="display:flex; flex-direction:column; gap:1rem; max-height:50vh; overflow-y:auto; padding-right:0.5rem;">
           <!-- Dynamic Category Proposal Cards -->
         </div>
       </div>
@@ -309,8 +321,38 @@
         <span style="font-size:0.78rem; color:var(--text-muted);" id="discovery-selected-count">Select categories to build Mindmap</span>
         <div style="display:flex; gap:0.75rem;">
           <button class="btn btn-secondary" onclick="document.getElementById('btn-close-discovery-modal').click();">Cancel</button>
-          <button class="btn btn-primary" id="btn-apply-discovery-categories">Apply Selected Categories & Build Mindmap ⚡</button>
+          <button class="btn btn-primary" id="btn-apply-discovery-categories">Apply Categories & Build Mindmap ⚡</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 0.5: RESET ENGINE & CLEAR CACHE CONFIRMATION MODAL -->
+  <div class="modal-backdrop" id="reset-cache-modal">
+    <div class="modal-dialog" style="max-width:520px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <span style="font-size:1.5rem; color:#ef4444;">⚠️</span>
+          <div>
+            <h3 class="modal-title">Reset Engine & Clear All Cache?</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted);">This action will wipe all stored keywords and custom categories from browser storage.</p>
+          </div>
+        </div>
+        <button class="btn btn-icon" id="btn-close-reset-modal">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:1.25rem; font-size:0.85rem; color:var(--text-main);">
+        <p style="margin-bottom:0.75rem;">Are you sure you want to clear your cached dataset and reset all categories to start fresh?</p>
+        <ul style="padding-left:1.25rem; color:var(--text-muted); font-size:0.8rem; display:flex; flex-direction:column; gap:0.25rem;">
+          <li>Clears raw and classified keyword cache</li>
+          <li>Resets sub-theme categories & custom tokens</li>
+          <li>Resets manual keyword assignments</li>
+        </ul>
+      </div>
+
+      <div class="modal-footer" style="justify-content:flex-end; gap:0.75rem;">
+        <button class="btn btn-secondary" onclick="document.getElementById('btn-close-reset-modal').click();">Cancel</button>
+        <button class="btn btn-primary" id="btn-confirm-reset-cache" style="background:#ef4444; border-color:#ef4444;">Yes, Reset Engine & Clear Cache 🧹</button>
       </div>
     </div>
   </div>

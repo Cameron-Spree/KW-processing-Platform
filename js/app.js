@@ -1,6 +1,7 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Features 100% Dataset Export Coverage & Sweep Unclassified Action.
+ * Supports Product Family Isolation (e.g. Chainsaw Safety vs Hedge Trimmer Safety)
+ * and 1-Click Reset Cache with Confirmation.
  */
 
 (function () {
@@ -55,6 +56,7 @@
       metricSpeed: document.getElementById('metric-speed'),
       btnThemeToggle: document.getElementById('btn-theme-toggle'),
       btnDiscoverCategories: document.getElementById('btn-discover-categories'),
+      btnResetCacheModal: document.getElementById('btn-reset-cache-modal'),
 
       // Navigation
       navTabs: document.querySelectorAll('.nav-tab'),
@@ -90,9 +92,14 @@
       // Modals
       categoryDiscoveryModal: document.getElementById('category-discovery-modal'),
       btnCloseDiscoveryModal: document.getElementById('btn-close-discovery-modal'),
+      inputProductFamily: document.getElementById('input-product-family'),
       discoveryProposalsContainer: document.getElementById('discovery-proposals-container'),
       btnApplyDiscoveryCategories: document.getElementById('btn-apply-discovery-categories'),
       discoverySelectedCount: document.getElementById('discovery-selected-count'),
+
+      resetCacheModal: document.getElementById('reset-cache-modal'),
+      btnCloseResetModal: document.getElementById('btn-close-reset-modal'),
+      btnConfirmResetCache: document.getElementById('btn-confirm-reset-cache'),
 
       ruleModal: document.getElementById('rule-modal'),
       btnCloseRuleModal: document.getElementById('btn-close-rule-modal'),
@@ -176,12 +183,21 @@
       });
     }
 
-    // 3. Header Action Buttons
+    // 3. Header Action Buttons & Reset Cache
     if (dom.btnLoadSample) {
       dom.btnLoadSample.addEventListener('click', loadSampleDataset);
     }
     if (dom.btnDiscoverCategories) {
       dom.btnDiscoverCategories.addEventListener('click', openCategoryDiscoveryModal);
+    }
+    if (dom.btnResetCacheModal) {
+      dom.btnResetCacheModal.addEventListener('click', () => openModal(dom.resetCacheModal));
+    }
+    if (dom.btnCloseResetModal) {
+      dom.btnCloseResetModal.addEventListener('click', () => closeModal(dom.resetCacheModal));
+    }
+    if (dom.btnConfirmResetCache) {
+      dom.btnConfirmResetCache.addEventListener('click', handleResetCache);
     }
 
     // 4. Discovery Modal Actions
@@ -190,6 +206,14 @@
     }
     if (dom.btnApplyDiscoveryCategories) {
       dom.btnApplyDiscoveryCategories.addEventListener('click', handleApplyDiscoveryCategories);
+    }
+    if (dom.inputProductFamily) {
+      dom.inputProductFamily.addEventListener('input', (e) => {
+        const val = e.target.value.trim() || 'Products';
+        window.SubClusterEngine.setProductFamily(val);
+        state.discoveryProposals = window.SubClusterEngine.discoverDatasetCategories(state.classifiedItems, val);
+        renderCategoryDiscoveryCards();
+      });
     }
 
     // 5. Mindmap Sweep Action
@@ -374,8 +398,43 @@
     if (tabId === 'clusters') renderMindmapView();
   }
 
+  /* --- Reset Engine & Clear Cache --- */
+  function handleResetCache() {
+    try {
+      localStorage.removeItem('briants_seo_pipeline_state');
+      if (window.SubClusterEngine) window.SubClusterEngine.clearEngineState();
+      
+      state.rawItems = [];
+      state.classifiedItems = [];
+      state.clusters = [];
+      state.discoveryProposals = [];
+      state.executionTimeMs = 0;
+
+      closeModal(dom.resetCacheModal);
+      updateHeaderMetrics();
+      
+      if (dom.importStatsContainer) dom.importStatsContainer.innerHTML = '';
+      if (dom.taxonomyTableBody) dom.taxonomyTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">No keywords loaded. Drop a CSV to start fresh!</td></tr>';
+      if (dom.mindmapCanvasContainer) dom.mindmapCanvasContainer.innerHTML = '<div style="text-align:center; padding:3rem; color:var(--text-muted);">No categories active. Import a CSV to setup dataset categories!</div>';
+
+      showToast('Engine cache cleared completely! Ready for fresh CSV import 🧹', 'success');
+      switchTab('import');
+    } catch (e) {
+      showToast('Failed to clear browser cache.', 'error');
+    }
+  }
+
   /* --- Data Ingestion & Enrichment --- */
   function handleFileImport(file) {
+    const fileName = file ? file.name.replace(/\.[^/.]+$/, "") : "Dataset";
+    let inferredProduct = "Chainsaws";
+    if (fileName.toLowerCase().includes("hedge")) inferredProduct = "Hedge Trimmers";
+    else if (fileName.toLowerCase().includes("fence") || fileName.toLowerCase().includes("landscap")) inferredProduct = "Fencing & Landscaping";
+    else if (fileName.toLowerCase().includes("mower") || fileName.toLowerCase().includes("tractor")) inferredProduct = "Lawn Tractors";
+
+    if (dom.inputProductFamily) dom.inputProductFamily.value = inferredProduct;
+    window.SubClusterEngine.setProductFamily(inferredProduct);
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const csvText = e.target.result;
@@ -442,7 +501,9 @@
       return;
     }
 
-    state.discoveryProposals = window.SubClusterEngine.discoverDatasetCategories(state.classifiedItems);
+    const currentFamily = dom.inputProductFamily ? dom.inputProductFamily.value.trim() || 'Chainsaws' : 'Chainsaws';
+    window.SubClusterEngine.setProductFamily(currentFamily);
+    state.discoveryProposals = window.SubClusterEngine.discoverDatasetCategories(state.classifiedItems, currentFamily);
     renderCategoryDiscoveryCards();
     openModal(dom.categoryDiscoveryModal);
   }
@@ -514,6 +575,9 @@
   }
 
   function handleApplyDiscoveryCategories() {
+    const pf = dom.inputProductFamily ? dom.inputProductFamily.value.trim() || 'Products' : 'Products';
+    window.SubClusterEngine.setProductFamily(pf);
+
     const selectedProposals = state.discoveryProposals.filter(p => p.isSelected);
 
     if (selectedProposals.length === 0) {
@@ -526,7 +590,7 @@
     closeModal(dom.categoryDiscoveryModal);
 
     renderMindmapView();
-    showToast(`Applied ${selectedProposals.length} product categories & generated Mindmap! ⚡`, 'success');
+    showToast(`Applied ${selectedProposals.length} categories for Product Family '${pf}' & generated Mindmap! ⚡`, 'success');
     switchTab('clusters');
   }
 
