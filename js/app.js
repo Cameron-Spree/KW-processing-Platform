@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Features Dynamic Category Discovery & Proposal Step per CSV Dataset.
+ * Features 100% Dataset Export Coverage & Sweep Unclassified Action.
  */
 
 (function () {
@@ -20,7 +20,8 @@
     webhooks: {
       masterUrl: '',
       sheetName: 'Raw Data Sheet',
-      pushMode: 'append'
+      pushMode: 'append',
+      exportScope: 'all'
     },
     discoveryProposals: [],
     executionTimeMs: 0,
@@ -74,12 +75,14 @@
 
       // Tab 3: Mindmap Architecture
       mindmapCanvasContainer: document.getElementById('mindmap-canvas-container'),
+      btnSweepUnclassified: document.getElementById('btn-sweep-unclassified'),
 
       // Tab 4: Master Raw Sheet Sync
       btnCopyMaster: document.getElementById('btn-copy-master'),
       urlMaster: document.getElementById('url-master'),
       sheetNameMaster: document.getElementById('sheet-name-master'),
       selectPushMode: document.getElementById('select-push-mode'),
+      selectExportScope: document.getElementById('select-export-scope'),
       btnPushMaster: document.getElementById('btn-push-master'),
       btnDownloadMasterCsv: document.getElementById('btn-download-master-csv'),
       btnAppsScriptModal: document.getElementById('btn-apps-script-modal'),
@@ -189,7 +192,12 @@
       dom.btnApplyDiscoveryCategories.addEventListener('click', handleApplyDiscoveryCategories);
     }
 
-    // 5. Taxonomy Filtering & Rule Modal
+    // 5. Mindmap Sweep Action
+    if (dom.btnSweepUnclassified) {
+      dom.btnSweepUnclassified.addEventListener('click', handleSweepUnclassified);
+    }
+
+    // 6. Taxonomy Filtering & Rule Modal
     if (dom.inputTaxonomySearch) {
       dom.inputTaxonomySearch.addEventListener('input', (e) => {
         state.filters.search = e.target.value;
@@ -223,7 +231,7 @@
       dom.btnSaveRules.addEventListener('click', handleSaveRules);
     }
 
-    // 6. Pillar Editor Modal Controls
+    // 7. Pillar Editor Modal Controls
     if (dom.btnClosePillarEditor) {
       dom.btnClosePillarEditor.addEventListener('click', () => closeModal(dom.pillarEditorModal));
     }
@@ -245,7 +253,7 @@
       });
     }
 
-    // 7. Reassign Modal Controls
+    // 8. Reassign Modal Controls
     if (dom.btnCloseReassignModal) {
       dom.btnCloseReassignModal.addEventListener('click', () => closeModal(dom.reassignModal));
     }
@@ -253,7 +261,7 @@
       dom.btnSaveReassign.addEventListener('click', handleSaveReassign);
     }
 
-    // 8. New Custom Category Modal Controls
+    // 9. New Custom Category Modal Controls
     if (dom.btnCloseCatModal) {
       dom.btnCloseCatModal.addEventListener('click', () => closeModal(dom.newCategoryModal));
     }
@@ -261,7 +269,7 @@
       dom.btnSaveNewCat.addEventListener('click', handleSaveNewCat);
     }
 
-    // 9. Auto-Save Master Webhook URL, Sheet Name & Push Mode
+    // 10. Auto-Save Master Webhook URL, Sheet Name & Push Mode & Scope
     if (dom.urlMaster) {
       dom.urlMaster.addEventListener('input', (e) => {
         state.webhooks.masterUrl = e.target.value.trim();
@@ -280,13 +288,20 @@
         saveStateToStorage();
       });
     }
+    if (dom.selectExportScope) {
+      dom.selectExportScope.addEventListener('change', (e) => {
+        state.webhooks.exportScope = e.target.value;
+        saveStateToStorage();
+      });
+    }
 
     // Master Raw Sheet Actions
     if (dom.btnCopyMaster) {
       dom.btnCopyMaster.addEventListener('click', async () => {
-        const tsv = window.GoogleSheetsBridge.buildMasterEnrichedTSV(state.classifiedItems, state.clusters);
+        const scope = dom.selectExportScope ? dom.selectExportScope.value : 'all';
+        const tsv = window.GoogleSheetsBridge.buildMasterEnrichedTSV(state.classifiedItems, state.clusters, scope);
         const res = await window.GoogleSheetsBridge.copyTSVToClipboard(tsv);
-        if (res.success) showToast(`Copied enriched keywords & dynamic sub-category headlines! Paste into Google Sheet with Ctrl+V`, 'success');
+        if (res.success) showToast(`Copied enriched keywords! Paste into Google Sheet with Ctrl+V`, 'success');
       });
     }
 
@@ -295,7 +310,8 @@
         const url = dom.urlMaster ? dom.urlMaster.value.trim() : '';
         const sheetName = dom.sheetNameMaster ? dom.sheetNameMaster.value.trim() || 'Raw Data Sheet' : 'Raw Data Sheet';
         const pushMode = dom.selectPushMode ? dom.selectPushMode.value : 'append';
-        const rows = window.GoogleSheetsBridge.getMasterEnrichedRowsArray(state.classifiedItems, state.clusters);
+        const scope = dom.selectExportScope ? dom.selectExportScope.value : 'all';
+        const rows = window.GoogleSheetsBridge.getMasterEnrichedRowsArray(state.classifiedItems, state.clusters, scope);
         try {
           const startTime = performance.now();
           await window.GoogleSheetsBridge.pushToWebhook(url, sheetName, pushMode, rows);
@@ -310,7 +326,8 @@
 
     if (dom.btnDownloadMasterCsv) {
       dom.btnDownloadMasterCsv.addEventListener('click', () => {
-        const tsv = window.GoogleSheetsBridge.buildMasterEnrichedTSV(state.classifiedItems, state.clusters);
+        const scope = dom.selectExportScope ? dom.selectExportScope.value : 'all';
+        const tsv = window.GoogleSheetsBridge.buildMasterEnrichedTSV(state.classifiedItems, state.clusters, scope);
         window.GoogleSheetsBridge.downloadCSV(tsv, 'Briants_Categorized_Raw_Keywords.csv');
       });
     }
@@ -375,7 +392,6 @@
       renderImportSummary(res.summary);
       showToast(`Imported ${res.items.length} keywords in ${state.executionTimeMs}ms!`, 'success');
       
-      // Auto-open Category Discovery Modal for newly loaded dataset!
       openCategoryDiscoveryModal();
       saveStateToStorage();
     };
@@ -477,7 +493,6 @@
 
     dom.discoveryProposalsContainer.innerHTML = cardsHtml;
 
-    // Wire checkbox updates
     const chks = dom.discoveryProposalsContainer.querySelectorAll('.chk-discovery-prop');
     chks.forEach(chk => {
       chk.addEventListener('change', (e) => {
@@ -513,6 +528,13 @@
     renderMindmapView();
     showToast(`Applied ${selectedProposals.length} product categories & generated Mindmap! ⚡`, 'success');
     switchTab('clusters');
+  }
+
+  function handleSweepUnclassified() {
+    const sweptCount = window.SubClusterEngine.sweepUnclassifiedToCatchAll();
+    saveStateToStorage();
+    renderMindmapView();
+    showToast(`Swept ${sweptCount} unclassified keywords into General Category! (100% Categorized ⚡)`, 'success');
   }
 
   /* --- Rendering UI --- */
@@ -664,7 +686,6 @@
 
     dom.pillarTokensPillList.innerHTML = pillsHtml;
 
-    // Wire Remove Token buttons
     const removeBtns = dom.pillarTokensPillList.querySelectorAll('.btn-remove-token');
     removeBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -785,7 +806,6 @@
 
     dom.pillarEditorTbody.innerHTML = rowsHtml;
 
-    // Wire inline dropdown reassignments
     const inlineSelects = dom.pillarEditorTbody.querySelectorAll('.select-inline-reassign');
     inlineSelects.forEach(select => {
       select.addEventListener('change', (e) => {
@@ -798,7 +818,6 @@
       });
     });
 
-    // Wire Discard Row buttons
     const discardBtns = dom.pillarEditorTbody.querySelectorAll('.btn-discard-row');
     discardBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -978,6 +997,7 @@
           if (dom.urlMaster && state.webhooks.masterUrl) dom.urlMaster.value = state.webhooks.masterUrl;
           if (dom.sheetNameMaster && state.webhooks.sheetName) dom.sheetNameMaster.value = state.webhooks.sheetName;
           if (dom.selectPushMode && state.webhooks.pushMode) dom.selectPushMode.value = state.webhooks.pushMode;
+          if (dom.selectExportScope && state.webhooks.exportScope) dom.selectExportScope.value = state.webhooks.exportScope;
         }
       }
     } catch (e) {}

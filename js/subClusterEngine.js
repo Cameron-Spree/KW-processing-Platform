@@ -1,22 +1,15 @@
 /**
  * Enhanced Sub-Clustering & Dynamic Category Discovery Engine for Briants
- * Scans incoming datasets (Hedge Trimmers, Chainsaws, Lawn Tractors, Fencing)
- * to propose tailored product pillars with sample keywords, justifications, and trigger tags.
+ * Features Sweep Unclassified Engine & Broad Fallback Clustering so 100% of keywords get categorized.
  */
 
 window.SubClusterEngine = (function () {
   'use strict';
 
-  // Active Sub-Theme Definitions (Can be reset per dataset)
   let subThemeDefinitions = [];
-
-  // Manual Keyword Branch Overrides Map (kw.toLowerCase() -> branchId)
   let manualOverrides = new Map();
   let rawDatasetCache = [];
 
-  /**
-   * Default fallback sub-themes if none are loaded.
-   */
   const defaultSubThemes = [
     {
       id: 'buying',
@@ -79,13 +72,13 @@ window.SubClusterEngine = (function () {
     },
     {
       id: 'usecases',
-      label: 'Use Cases & Applications',
+      label: 'General Product Terms & Use Cases',
       icon: '🌲',
       color: '#10b981',
-      tokens: ['pruning', 'firewood', 'logging', 'felling', 'arborist', 'tree surgeon', 'home use', 'garden', 'heavy duty', 'commercial', 'slabs', 'diy', 'construction', 'hedge', 'trimming', 'high hedge', 'shrub'],
+      tokens: ['pruning', 'firewood', 'logging', 'felling', 'arborist', 'tree surgeon', 'home use', 'garden', 'heavy duty', 'commercial', 'slabs', 'diy', 'construction', 'hedge', 'trimmer', 'cutter', 'pruner', 'shears', 'saw', 'tool', 'equipment', 'machinery', 'uk'],
       microTopics: [
-        { id: 'use_garden', label: 'Garden & Hedge Trimming', tokens: ['garden', 'hedge', 'trimming', 'pruning', 'shrub', 'home use', 'diy'] },
-        { id: 'use_pro', label: 'High Reach & Commercial', tokens: ['arborist', 'felling', 'commercial', 'high hedge', 'heavy duty', 'pole'] }
+        { id: 'use_garden', label: 'Garden & Home Use', tokens: ['garden', 'home use', 'diy', 'pruning', 'shrub'] },
+        { id: 'use_general', label: 'General Machinery & Cutters', tokens: ['trimmer', 'cutter', 'pruner', 'shears', 'tool', 'equipment', 'machinery', 'uk'] }
       ]
     }
   ];
@@ -94,6 +87,7 @@ window.SubClusterEngine = (function () {
 
   /**
    * Dynamic Category Discovery Engine: Scans raw dataset to propose dataset-specific categories.
+   * Includes broad fallback category for general product terms so terms are not left stranded.
    */
   function discoverDatasetCategories(classifiedItems) {
     if (!classifiedItems || classifiedItems.length === 0) return [];
@@ -101,7 +95,6 @@ window.SubClusterEngine = (function () {
     const keywords = classifiedItems.map(i => (i.Keyword || '').toLowerCase().trim());
     const totalCount = keywords.length;
 
-    // Pattern definitions to detect dataset features
     const discoveryRules = [
       {
         id: 'disc_poles_longreach',
@@ -140,7 +133,7 @@ window.SubClusterEngine = (function () {
         label: 'Buying Guides, Reviews & Best Deals',
         icon: '🛒',
         color: '#30b0c7',
-        testTokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'cheap', 'cost', 'deal', 'hire'],
+        testTokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'cheap', 'cost', 'deal', 'hire', 'for sale'],
         suggestedTokens: ['best', 'top', 'vs', 'review', 'comparison', 'buying', 'price', 'cheap', 'hire']
       },
       {
@@ -158,6 +151,14 @@ window.SubClusterEngine = (function () {
         color: '#af52de',
         testTokens: ['safety', 'ppe', 'goggles', 'glasses', 'gloves', 'helmet', 'visor', 'harness', 'trousers', 'boots'],
         suggestedTokens: ['safety', 'ppe', 'goggles', 'glasses', 'gloves', 'helmet', 'visor']
+      },
+      {
+        id: 'disc_general_machinery',
+        label: 'General Product Terms & Garden Machinery',
+        icon: '🌿',
+        color: '#14b8a6',
+        testTokens: ['trimmer', 'cutter', 'pruner', 'shears', 'saw', 'tool', 'equipment', 'machinery', 'garden', 'uk', 'work', 'heavy duty'],
+        suggestedTokens: ['trimmer', 'cutter', 'pruner', 'shears', 'saw', 'tool', 'equipment', 'machinery', 'garden', 'uk']
       }
     ];
 
@@ -179,7 +180,6 @@ window.SubClusterEngine = (function () {
       });
 
       if (matchingKwList.length > 0) {
-        // Sample up to 4 keywords for display
         const sampleKeywords = matchingKwList.slice(0, 4);
 
         proposals.push({
@@ -206,7 +206,6 @@ window.SubClusterEngine = (function () {
   function applyDatasetCategoryProposals(selectedProposals) {
     if (!selectedProposals || selectedProposals.length === 0) return;
 
-    // Reset sub-theme definitions
     subThemeDefinitions = selectedProposals.map(prop => {
       const autoMicroTopics = prop.tokens.map((token, idx) => {
         const formattedLabel = token.charAt(0).toUpperCase() + token.slice(1);
@@ -227,8 +226,40 @@ window.SubClusterEngine = (function () {
       };
     });
 
-    // Reset manual overrides so fresh dataset gets cleanly auto-sorted into new categories!
     manualOverrides.clear();
+  }
+
+  /**
+   * Sweep ALL remaining Unclassified keywords into a General Catch-All Category.
+   */
+  function sweepUnclassifiedToCatchAll() {
+    if (rawDatasetCache.length === 0) return 0;
+
+    let generalBranch = subThemeDefinitions.find(st => st.id === 'disc_general_machinery' || st.id === 'usecases');
+    if (!generalBranch) {
+      generalBranch = {
+        id: 'disc_general_machinery',
+        label: 'General Product Terms & Category Terms',
+        icon: '🌿',
+        color: '#14b8a6',
+        tokens: ['trimmer', 'cutter', 'pruner', 'shears', 'tool', 'equipment', 'machinery', 'garden', 'uk'],
+        microTopics: []
+      };
+      subThemeDefinitions.push(generalBranch);
+    }
+
+    const currentTree = buildTopicTree(rawDatasetCache);
+    const unclassifiedBranch = (currentTree.branches || []).find(b => b.id === 'unclassified');
+    const unclassifiedNodes = unclassifiedBranch ? unclassifiedBranch.nodes : [];
+
+    let sweptCount = 0;
+    unclassifiedNodes.forEach(item => {
+      const kw = (item.Keyword || '').toLowerCase().trim();
+      manualOverrides.set(kw, generalBranch.id);
+      sweptCount++;
+    });
+
+    return sweptCount;
   }
 
   /**
@@ -253,7 +284,6 @@ window.SubClusterEngine = (function () {
 
     const totalMasterVolume = filtered.reduce((sum, item) => sum + (item['Search Volume'] || 0), 0);
 
-    // Initialize Branch Map
     const branchMap = new Map();
     subThemeDefinitions.forEach(st => {
       branchMap.set(st.id, {
@@ -265,7 +295,6 @@ window.SubClusterEngine = (function () {
       });
     });
 
-    // Unclassified / Fallback / Discarded Queue
     branchMap.set('unclassified', {
       id: 'unclassified',
       label: 'Unclassified / To Be Assigned',
@@ -284,7 +313,6 @@ window.SubClusterEngine = (function () {
     filtered.forEach(item => {
       const kw = (item.Keyword || '').toLowerCase();
 
-      // Check manual user override first
       if (manualOverrides.has(kw)) {
         const overrideBranchId = manualOverrides.get(kw);
         const branch = branchMap.get(overrideBranchId) || branchMap.get('unclassified');
@@ -310,7 +338,6 @@ window.SubClusterEngine = (function () {
         return;
       }
 
-      // Heuristic token evaluation
       let bestBranchId = 'unclassified';
       let maxScore = 0;
 
@@ -393,9 +420,6 @@ window.SubClusterEngine = (function () {
     return 'General';
   }
 
-  /**
-   * Bulk move all keywords in a pillar branch to Unclassified queue.
-   */
   function bulkDiscardBranch(branchNodes) {
     if (!branchNodes || !Array.isArray(branchNodes)) return;
     branchNodes.forEach(node => {
@@ -405,16 +429,12 @@ window.SubClusterEngine = (function () {
     });
   }
 
-  /**
-   * Add a user-defined custom category branch & auto-fill ONLY from UNCLASSIFIED queue.
-   */
   function addCustomCategory(categoryName, categoryIcon = '📁', categoryTokens = [], autoFill = true) {
     const id = 'custom_' + categoryName.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const colors = ['#007aff', '#ff9500', '#10b981', '#af52de', '#ff2d55', '#30b0c7'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     const cleanTokens = categoryTokens.map(t => t.toLowerCase().trim()).filter(Boolean);
 
-    // Auto-generate micro-topic definitions from tokens
     const autoMicroTopics = cleanTokens.map((token, idx) => {
       const formattedLabel = token.charAt(0).toUpperCase() + token.slice(1);
       return {
@@ -424,7 +444,6 @@ window.SubClusterEngine = (function () {
       };
     });
 
-    // Check if custom category already exists
     const existingIdx = subThemeDefinitions.findIndex(st => st.id === id);
     if (existingIdx >= 0) {
       subThemeDefinitions[existingIdx].label = categoryName;
@@ -443,7 +462,6 @@ window.SubClusterEngine = (function () {
 
     let autoFilledCount = 0;
 
-    // STRICT UNCLASSIFIED-ONLY AUTO-FILL
     if (autoFill && cleanTokens.length > 0 && rawDatasetCache.length > 0) {
       const currentTree = buildTopicTree(rawDatasetCache);
       const unclassifiedBranch = (currentTree.branches || []).find(b => b.id === 'unclassified');
@@ -464,9 +482,6 @@ window.SubClusterEngine = (function () {
     return { id: id, autoFilledCount: autoFilledCount, microTopicsCount: autoMicroTopics.length };
   }
 
-  /**
-   * Auto-fill an existing branch ONLY from UNCLASSIFIED queue.
-   */
   function autoFillBranch(branchId) {
     const branchDef = subThemeDefinitions.find(st => st.id === branchId);
     if (!branchDef || !branchDef.tokens || branchDef.tokens.length === 0 || rawDatasetCache.length === 0) return 0;
@@ -490,9 +505,6 @@ window.SubClusterEngine = (function () {
     return filledCount;
   }
 
-  /**
-   * Add a trigger token to a pillar category and auto-update micro-topics.
-   */
   function addBranchToken(branchId, token) {
     const branchDef = subThemeDefinitions.find(st => st.id === branchId);
     if (!branchDef || !token) return 0;
@@ -501,7 +513,6 @@ window.SubClusterEngine = (function () {
     if (!branchDef.tokens.includes(cleanToken)) {
       branchDef.tokens.push(cleanToken);
 
-      // Auto-generate micro-topic pill for new token if custom branch
       if (branchId.startsWith('custom_')) {
         const formattedLabel = cleanToken.charAt(0).toUpperCase() + cleanToken.slice(1);
         branchDef.microTopics.push({
@@ -511,15 +522,11 @@ window.SubClusterEngine = (function () {
         });
       }
 
-      // Automatically re-scan Unclassified pool for new token!
       return autoFillBranch(branchId);
     }
     return 0;
   }
 
-  /**
-   * Remove a trigger token from a pillar category.
-   */
   function removeBranchToken(branchId, token) {
     const branchDef = subThemeDefinitions.find(st => st.id === branchId);
     if (!branchDef || !token) return;
@@ -531,9 +538,6 @@ window.SubClusterEngine = (function () {
     }
   }
 
-  /**
-   * Reassign a keyword manually to a specific branch.
-   */
   function reassignKeyword(keyword, targetBranchId) {
     if (!keyword) return;
     manualOverrides.set(keyword.toLowerCase().trim(), targetBranchId);
@@ -543,9 +547,6 @@ window.SubClusterEngine = (function () {
     return subThemeDefinitions;
   }
 
-  /**
-   * Serialize Engine State for LocalStorage persistence.
-   */
   function exportEngineState() {
     return {
       subThemeDefinitions: subThemeDefinitions,
@@ -553,9 +554,6 @@ window.SubClusterEngine = (function () {
     };
   }
 
-  /**
-   * Deserialize Engine State from LocalStorage while preserving custom user categories.
-   */
   function importEngineState(savedState) {
     if (!savedState) return;
 
@@ -572,6 +570,7 @@ window.SubClusterEngine = (function () {
     buildTopicTree: buildTopicTree,
     discoverDatasetCategories: discoverDatasetCategories,
     applyDatasetCategoryProposals: applyDatasetCategoryProposals,
+    sweepUnclassifiedToCatchAll: sweepUnclassifiedToCatchAll,
     bulkDiscardBranch: bulkDiscardBranch,
     addCustomCategory: addCustomCategory,
     autoFillBranch: autoFillBranch,

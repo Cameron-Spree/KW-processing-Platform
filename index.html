@@ -189,6 +189,9 @@
               <h2 class="card-title"><span>🗺️</span> Semantic Topic Architecture & Mindmap Visualizer</h2>
               <p class="card-subtitle">Heuristically categorizes seed topics into sub-themes. Click any pillar header to expand into Full-Screen Editor!</p>
             </div>
+            <button class="btn btn-primary btn-sm" id="btn-sweep-unclassified" title="Sweeps all remaining unassigned keywords into General Category so 100% get exported">
+              🧹 Auto-Categorize Remaining Unclassified ⚡
+            </button>
           </div>
 
           <!-- Mindmap Render Canvas Container -->
@@ -207,6 +210,13 @@
             <div>
               <h2 class="card-title"><span>⚡</span> Sync Enriched Dataset to Master Raw Sheet</h2>
               <p class="card-subtitle">Pushes 16 enriched columns (including Sub-Category context-aware headlines & Category mappings) to your Raw Keyword Sheet (Target ID: <code>1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4</code>)!</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-muted);">Export Scope:</label>
+              <select class="select-filter" id="select-export-scope" style="font-size:0.78rem; padding:0.35rem 0.75rem;">
+                <option value="all" selected>🌐 Export ALL Keywords (100% Dataset Coverage)</option>
+                <option value="categorized_only">✓ Export Categorized Keywords Only (Strict)</option>
+              </select>
             </div>
           </div>
 

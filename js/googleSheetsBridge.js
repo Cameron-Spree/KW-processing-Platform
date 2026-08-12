@@ -1,6 +1,6 @@
 /**
  * Google Sheets Integration & High-Speed Exporter for Briants
- * Features Context-Aware Headline Generation per Sub-Category & Batch Append/Overwrite Support.
+ * Supports Exporting 100% of Keywords (ALL) vs Categorized-Only!
  * Target Raw Sheet ID: 1FSGaCH-WKJEiuzwCoaBqDpJ80WSci4iOZBxkxzAhuH4
  */
 
@@ -31,15 +31,21 @@ window.GoogleSheetsBridge = (function () {
   }
 
   /**
-   * Filter out unclassified keywords for strict export.
+   * Filter items based on export Scope ('all' or 'categorized_only').
    */
-  function filterCategorizedOnly(classifiedItems) {
+  function filterItemsForExport(classifiedItems, exportScope = 'all') {
     const kwMap = getKeywordCategoryMapping(classifiedItems);
-    return classifiedItems.filter(item => {
-      const kw = (item.Keyword || '').toLowerCase().trim();
-      const info = kwMap.get(kw);
-      return info && info.branchId !== 'unclassified';
-    });
+    
+    if (exportScope === 'categorized_only') {
+      return classifiedItems.filter(item => {
+        const kw = (item.Keyword || '').toLowerCase().trim();
+        const info = kwMap.get(kw);
+        return info && info.branchId !== 'unclassified';
+      });
+    }
+
+    // Default: Return ALL keywords in dataset (100% coverage!)
+    return classifiedItems;
   }
 
   /**
@@ -51,7 +57,6 @@ window.GoogleSheetsBridge = (function () {
     const subCatLower = (subCategory || '').toLowerCase();
     const intentLower = (intent || '').toLowerCase();
 
-    // Sub-Category Contextual Templates
     if (subCatLower.includes('fuel') || subCatLower.includes('mix')) {
       return `How to Mix Fuel & Oil for ${kwCap}: Ratio & Maintenance Guide`;
     }
@@ -95,7 +100,6 @@ window.GoogleSheetsBridge = (function () {
       return `Professional Arborist Guide: High-Performance ${kwCap}`;
     }
 
-    // Fallback based on Intent
     if (intentLower.includes('commercial') || intentLower.includes('transactional')) {
       return `Best ${kwCap} for Sale: Briants Buyer's Guide & Comparison`;
     }
@@ -106,8 +110,8 @@ window.GoogleSheetsBridge = (function () {
   /**
    * Build 16-column Enriched TSV data string for cell A2 clipboard pasting.
    */
-  function buildMasterEnrichedTSV(classifiedItems, clusters) {
-    const validItems = filterCategorizedOnly(classifiedItems);
+  function buildMasterEnrichedTSV(classifiedItems, clusters, exportScope = 'all') {
+    const validItems = filterItemsForExport(classifiedItems, exportScope);
     const kwMap = getKeywordCategoryMapping(classifiedItems);
     const dateStr = new Date().toISOString().split('T')[0];
 
@@ -141,8 +145,8 @@ window.GoogleSheetsBridge = (function () {
       const funnel = item.FunnelStage || 'Awareness';
       const priority = item.Priority || 'Medium';
 
-      const catInfo = kwMap.get(kw.toLowerCase().trim()) || { categoryLabel: 'General', microTopicLabel: 'General' };
-      const category = catInfo.categoryLabel;
+      const catInfo = kwMap.get(kw.toLowerCase().trim()) || { categoryLabel: 'General Product Terms', microTopicLabel: 'General' };
+      const category = (catInfo.branchId === 'unclassified') ? 'General Product Terms & Category Terms' : catInfo.categoryLabel;
       const subCategory = catInfo.microTopicLabel;
 
       const headline = generateDynamicHeadline(kw, category, subCategory, intent);
@@ -174,8 +178,8 @@ window.GoogleSheetsBridge = (function () {
   /**
    * Build 16-column Enriched 2D Array for Webhook setValues() batch push.
    */
-  function getMasterEnrichedRowsArray(classifiedItems, clusters) {
-    const validItems = filterCategorizedOnly(classifiedItems);
+  function getMasterEnrichedRowsArray(classifiedItems, clusters, exportScope = 'all') {
+    const validItems = filterItemsForExport(classifiedItems, exportScope);
     const kwMap = getKeywordCategoryMapping(classifiedItems);
     const dateStr = new Date().toISOString().split('T')[0];
 
@@ -190,8 +194,8 @@ window.GoogleSheetsBridge = (function () {
       const funnel = item.FunnelStage || 'Awareness';
       const priority = item.Priority || 'Medium';
 
-      const catInfo = kwMap.get(kw.toLowerCase().trim()) || { categoryLabel: 'General', microTopicLabel: 'General' };
-      const category = catInfo.categoryLabel;
+      const catInfo = kwMap.get(kw.toLowerCase().trim()) || { categoryLabel: 'General Product Terms', microTopicLabel: 'General' };
+      const category = (catInfo.branchId === 'unclassified') ? 'General Product Terms & Category Terms' : catInfo.categoryLabel;
       const subCategory = catInfo.microTopicLabel;
 
       const headline = generateDynamicHeadline(kw, category, subCategory, intent);
@@ -247,7 +251,7 @@ window.GoogleSheetsBridge = (function () {
   }
 
   /**
-   * Batch Google Apps Script Webhook Push (Supports Overwrite & Append mode).
+   * Batch Google Apps Script Webhook Push.
    */
   async function pushToWebhook(webhookUrl, sheetName, mode, rowsArray) {
     if (!webhookUrl) {
@@ -256,7 +260,7 @@ window.GoogleSheetsBridge = (function () {
 
     const payload = {
       sheetName: sheetName || 'Raw Data Sheet',
-      mode: mode || 'append', // 'append' adds to bottom; 'overwrite' starts at row 2
+      mode: mode || 'append',
       rows: rowsArray || []
     };
 
@@ -278,7 +282,7 @@ function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
     var sheetName = data.sheetName || 'Raw Data Sheet';
-    var mode = data.mode || 'append'; // 'append' or 'overwrite'
+    var mode = data.mode || 'append';
     var rows = data.rows || [];
     
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -291,7 +295,6 @@ function doPost(e) {
       if (mode === 'overwrite') {
         sheet.getRange(2, 1, numRows, numCols).setValues(rows);
       } else {
-        // Append mode: find last row and add fresh batch at bottom!
         var lastRow = sheet.getLastRow();
         var startRow = Math.max(lastRow + 1, 2);
         sheet.getRange(startRow, 1, numRows, numCols).setValues(rows);
