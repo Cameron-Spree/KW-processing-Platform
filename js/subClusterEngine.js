@@ -1,19 +1,18 @@
 /**
  * Enhanced Sub-Clustering & Dynamic Category Discovery Engine for Briants
- * Features Smart Product Topic Sanitizer & Clean Concise Category Titles!
+ * Supports Strict Focus Topic Isolation (Chainsaws vs Fencing & Landscaping vs Hedge Trimmers).
  */
 
 window.SubClusterEngine = (function () {
   'use strict';
 
-  let subThemeDefinitions = [];
-  let manualOverrides = new Map();
+  // Map of Focus Topic Name -> Array of SubTheme Definitions
+  let topicCategoryMap = new Map();
+  let manualOverrides = new Map(); // kw_key -> branchId
   let rawDatasetCache = [];
-  let activeProductFamily = 'Fence Posts';
+  let activeProductFamily = 'Fencing & Landscaping';
+  let knownFocusTopics = new Set(['Chainsaws', 'Fencing & Landscaping', 'Hedge Trimmers']);
 
-  /**
-   * Helper to clean Product Family names (e.g. "DataCubeX Research Keywords Fence Posts" -> "Fence Posts")
-   */
   function sanitizeProductFamily(rawName) {
     if (!rawName) return 'Products';
     let clean = String(rawName).replace(/\.[^/.]+$/, '');
@@ -26,7 +25,9 @@ window.SubClusterEngine = (function () {
 
   function setProductFamily(familyName) {
     if (familyName && familyName.trim()) {
-      activeProductFamily = sanitizeProductFamily(familyName);
+      const clean = sanitizeProductFamily(familyName);
+      activeProductFamily = clean;
+      knownFocusTopics.add(clean);
     }
   }
 
@@ -34,25 +35,32 @@ window.SubClusterEngine = (function () {
     return activeProductFamily;
   }
 
+  function getKnownFocusTopics() {
+    return Array.from(knownFocusTopics);
+  }
+
   const stopWords = new Set([
     'and', 'the', 'for', 'in', 'to', 'a', 'of', 'with', 'on', 'at', 'by', 'from', 'is', 'are', 'it', 'or', 'an', 'be', 'how', 'what', 'which', 'where', 'why', 'can', 'do', 'does', 'near', 'me', 'uk'
   ]);
 
   /**
-   * Universal Dataset Category Synthesizer with Clean Concise Category Titles.
+   * Discover dataset categories scoped strictly to activeProductFamily.
    */
   function discoverDatasetCategories(classifiedItems, productFamily = activeProductFamily) {
     setProductFamily(productFamily);
     if (!classifiedItems || classifiedItems.length === 0) return [];
 
-    const keywords = classifiedItems.map(i => (i.Keyword || '').toLowerCase().trim());
-    const totalCount = keywords.length;
+    // Filter classifiedItems strictly by activeProductFamily if keywords have assigned FocusTopic
+    const topicFiltered = classifiedItems.filter(i => !i.FocusTopic || i.FocusTopic === activeProductFamily);
+    const targetItems = topicFiltered.length > 0 ? topicFiltered : classifiedItems;
+
+    const totalCount = targetItems.length;
     const pf = activeProductFamily;
 
     const wordFreq = new Map();
     const phraseFreq = new Map();
 
-    classifiedItems.forEach(item => {
+    targetItems.forEach(item => {
       const kw = (item.Keyword || '').toLowerCase().trim();
       const vol = item['Search Volume'] || 0;
       const tokens = kw.split(/[^a-z0-9]+/g).filter(t => t.length > 2 && !stopWords.has(t));
@@ -73,10 +81,9 @@ window.SubClusterEngine = (function () {
       }
     });
 
-    // Clean, punchy category rule templates
     const universalClusters = [
       {
-        id: 'cluster_materials_types',
+        id: `cluster_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_materials_types`,
         label: `${pf} Types, Styles & Materials`,
         icon: '🧱',
         color: '#007aff',
@@ -84,7 +91,7 @@ window.SubClusterEngine = (function () {
         suggestedTokens: []
       },
       {
-        id: 'cluster_install_care',
+        id: `cluster_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_install_care`,
         label: `Installation, Repairs & Maintenance`,
         icon: '🛠️',
         color: '#ff9500',
@@ -92,7 +99,7 @@ window.SubClusterEngine = (function () {
         suggestedTokens: []
       },
       {
-        id: 'cluster_power_attach',
+        id: `cluster_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_power_attach`,
         label: `Poles, Power & Attachments`,
         icon: '⚡',
         color: '#10b981',
@@ -100,7 +107,7 @@ window.SubClusterEngine = (function () {
         suggestedTokens: []
       },
       {
-        id: 'cluster_buying_pricing',
+        id: `cluster_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_buying_pricing`,
         label: `Buying Guides, Prices & Deals`,
         icon: '🛒',
         color: '#30b0c7',
@@ -108,7 +115,7 @@ window.SubClusterEngine = (function () {
         suggestedTokens: []
       },
       {
-        id: 'cluster_brands_ranges',
+        id: `cluster_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_brands_ranges`,
         label: `Brand Models & Supplier Ranges`,
         icon: '🏷️',
         color: '#8b5cf6',
@@ -116,7 +123,7 @@ window.SubClusterEngine = (function () {
         suggestedTokens: []
       },
       {
-        id: 'cluster_safety_ppe',
+        id: `cluster_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_safety_ppe`,
         label: `Safety & Protective Gear`,
         icon: '🛡️',
         color: '#af52de',
@@ -124,7 +131,7 @@ window.SubClusterEngine = (function () {
         suggestedTokens: []
       },
       {
-        id: 'cluster_general_terms',
+        id: `cluster_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_general_terms`,
         label: `General ${pf} Terms`,
         icon: '🌿',
         color: '#14b8a6',
@@ -140,7 +147,7 @@ window.SubClusterEngine = (function () {
       let totalMatchingVol = 0;
       const matchedTokensSet = new Set();
 
-      classifiedItems.forEach(item => {
+      targetItems.forEach(item => {
         const kw = (item.Keyword || '').toLowerCase().trim();
         for (const token of cluster.tokens) {
           if (kw.includes(token)) {
@@ -171,37 +178,16 @@ window.SubClusterEngine = (function () {
       }
     });
 
-    // Top Phrase Specific Cluster synthesis if needed
-    if (proposals.length === 0 || totalCount > 50) {
-      const topPhrases = Array.from(phraseFreq.entries())
-        .sort((a, b) => b[1].vol - a[1].vol)
-        .slice(0, 4)
-        .map(p => p[0]);
-
-      if (topPhrases.length > 0) {
-        const topPhraseLabel = topPhrases[0].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        proposals.unshift({
-          id: `cluster_dataset_top_${topPhrases[0].replace(/[^a-z0-9]/g, '_')}`,
-          label: `${topPhraseLabel} Key Ranges`,
-          icon: '✨',
-          color: '#ec4899',
-          matchCount: Math.round(totalCount * 0.4),
-          totalVolume: Math.round(classifiedItems.reduce((s, i) => s + (i['Search Volume'] || 0), 0) * 0.4),
-          percentageOfDataset: 40,
-          sampleKeywords: classifiedItems.slice(0, 4).map(i => i.Keyword),
-          tokens: topPhrases,
-          isSelected: true
-        });
-      }
-    }
-
     return proposals;
   }
 
+  /**
+   * Apply dataset category proposals strictly to activeProductFamily map.
+   */
   function applyDatasetCategoryProposals(selectedProposals) {
     if (!selectedProposals || selectedProposals.length === 0) return;
 
-    subThemeDefinitions = selectedProposals.map(prop => {
+    const formattedSubThemes = selectedProposals.map(prop => {
       const autoMicroTopics = prop.tokens.map((token, idx) => {
         const formattedLabel = token.charAt(0).toUpperCase() + token.slice(1);
         return {
@@ -221,14 +207,20 @@ window.SubClusterEngine = (function () {
       };
     });
 
-    manualOverrides.clear();
+    topicCategoryMap.set(activeProductFamily, formattedSubThemes);
+    subThemeDefinitions = formattedSubThemes;
   }
 
+  /**
+   * Sweep unclassified keywords strictly for activeProductFamily.
+   */
   function sweepUnclassifiedToCatchAll() {
     if (rawDatasetCache.length === 0) return 0;
 
     const pf = activeProductFamily;
-    let generalBranch = subThemeDefinitions.find(st => st.id.includes('general') || st.id.includes('usecases'));
+    let currentDefs = topicCategoryMap.get(pf) || subThemeDefinitions;
+
+    let generalBranch = currentDefs.find(st => st.id.includes('general') || st.id.includes('usecases'));
     
     if (!generalBranch) {
       generalBranch = {
@@ -239,17 +231,17 @@ window.SubClusterEngine = (function () {
         tokens: ['paving', 'decking', 'fencing', 'fence', 'timber', 'wood', 'trimmer', 'cutter', 'garden', 'uk'],
         microTopics: []
       };
-      subThemeDefinitions.push(generalBranch);
+      currentDefs.push(generalBranch);
     }
 
-    const currentTree = buildTopicTree(rawDatasetCache);
+    const currentTree = buildTopicTree(rawDatasetCache, pf);
     const unclassifiedBranch = (currentTree.branches || []).find(b => b.id === 'unclassified');
     const unclassifiedNodes = unclassifiedBranch ? unclassifiedBranch.nodes : [];
 
     let sweptCount = 0;
     unclassifiedNodes.forEach(item => {
-      const kw = (item.Keyword || '').toLowerCase().trim();
-      manualOverrides.set(kw, generalBranch.id);
+      const kwKey = `${pf.toLowerCase()}::${(item.Keyword || '').toLowerCase().trim()}`;
+      manualOverrides.set(kwKey, generalBranch.id);
       sweptCount++;
     });
 
@@ -257,33 +249,36 @@ window.SubClusterEngine = (function () {
   }
 
   function clearEngineState() {
+    topicCategoryMap.clear();
     subThemeDefinitions = [];
     manualOverrides.clear();
     rawDatasetCache = [];
-    activeProductFamily = 'Fence Posts';
+    knownFocusTopics = new Set(['Chainsaws', 'Fencing & Landscaping', 'Hedge Trimmers']);
+    activeProductFamily = 'Fencing & Landscaping';
   }
 
-  function buildTopicTree(classifiedItems, seedTopicFilter = 'all') {
+  /**
+   * Build 3-level Mindmap Data Tree strictly isolated by Focus Topic!
+   */
+  function buildTopicTree(classifiedItems, focusTopicFilter = activeProductFamily) {
     rawDatasetCache = classifiedItems || [];
-    let filtered = classifiedItems;
+    const targetTopic = focusTopicFilter || activeProductFamily;
 
-    if (seedTopicFilter && seedTopicFilter !== 'all') {
-      const targetToken = seedTopicFilter.toLowerCase().trim();
-      filtered = classifiedItems.filter(item => (item.Keyword || '').toLowerCase().includes(targetToken));
-    }
+    // STRICT ISOLATION: Filter classified items strictly by FocusTopic!
+    let filtered = classifiedItems.filter(item => (item.FocusTopic || activeProductFamily) === targetTopic);
 
     if (filtered.length === 0) {
+      // Fallback if item does not have explicit FocusTopic property yet
       filtered = classifiedItems;
     }
 
-    const masterTitle = seedTopicFilter !== 'all' 
-      ? seedTopicFilter.charAt(0).toUpperCase() + seedTopicFilter.slice(1) + ` ${activeProductFamily} Architecture` 
-      : `Briants ${activeProductFamily} Architecture`;
+    const currentTopicDefs = topicCategoryMap.get(targetTopic) || subThemeDefinitions;
 
+    const masterTitle = `Briants ${targetTopic} Architecture`;
     const totalMasterVolume = filtered.reduce((sum, item) => sum + (item['Search Volume'] || 0), 0);
 
     const branchMap = new Map();
-    subThemeDefinitions.forEach(st => {
+    currentTopicDefs.forEach(st => {
       branchMap.set(st.id, {
         ...st,
         branchVolume: 0,
@@ -310,9 +305,10 @@ window.SubClusterEngine = (function () {
 
     filtered.forEach(item => {
       const kw = (item.Keyword || '').toLowerCase();
+      const kwKey = `${targetTopic.toLowerCase()}::${kw}`;
 
-      if (manualOverrides.has(kw)) {
-        const overrideBranchId = manualOverrides.get(kw);
+      if (manualOverrides.has(kwKey)) {
+        const overrideBranchId = manualOverrides.get(kwKey);
         const branch = branchMap.get(overrideBranchId) || branchMap.get('unclassified');
         const isUnassigned = branch.id === 'unclassified';
 
@@ -339,7 +335,7 @@ window.SubClusterEngine = (function () {
       let bestBranchId = 'unclassified';
       let maxScore = 0;
 
-      for (const st of subThemeDefinitions) {
+      for (const st of currentTopicDefs) {
         let score = 0;
         for (const token of st.tokens) {
           if (kw.includes(token)) {
@@ -420,9 +416,11 @@ window.SubClusterEngine = (function () {
 
   function bulkDiscardBranch(branchNodes) {
     if (!branchNodes || !Array.isArray(branchNodes)) return;
+    const pf = activeProductFamily.toLowerCase();
     branchNodes.forEach(node => {
       if (node.Keyword) {
-        manualOverrides.set(node.Keyword.toLowerCase().trim(), 'unclassified');
+        const kwKey = `${pf}::${node.Keyword.toLowerCase().trim()}`;
+        manualOverrides.set(kwKey, 'unclassified');
       }
     });
   }
@@ -442,13 +440,15 @@ window.SubClusterEngine = (function () {
       };
     });
 
-    const existingIdx = subThemeDefinitions.findIndex(st => st.id === id);
+    let currentDefs = topicCategoryMap.get(activeProductFamily) || subThemeDefinitions;
+
+    const existingIdx = currentDefs.findIndex(st => st.id === id);
     if (existingIdx >= 0) {
-      subThemeDefinitions[existingIdx].label = categoryName;
-      subThemeDefinitions[existingIdx].tokens = cleanTokens;
-      subThemeDefinitions[existingIdx].microTopics = autoMicroTopics;
+      currentDefs[existingIdx].label = categoryName;
+      currentDefs[existingIdx].tokens = cleanTokens;
+      currentDefs[existingIdx].microTopics = autoMicroTopics;
     } else {
-      subThemeDefinitions.push({
+      currentDefs.push({
         id: id,
         label: categoryName,
         icon: categoryIcon,
@@ -458,10 +458,13 @@ window.SubClusterEngine = (function () {
       });
     }
 
+    topicCategoryMap.set(activeProductFamily, currentDefs);
+    subThemeDefinitions = currentDefs;
+
     let autoFilledCount = 0;
 
     if (autoFill && cleanTokens.length > 0 && rawDatasetCache.length > 0) {
-      const currentTree = buildTopicTree(rawDatasetCache);
+      const currentTree = buildTopicTree(rawDatasetCache, activeProductFamily);
       const unclassifiedBranch = (currentTree.branches || []).find(b => b.id === 'unclassified');
       const unclassifiedNodes = unclassifiedBranch ? unclassifiedBranch.nodes : [];
 
@@ -469,7 +472,8 @@ window.SubClusterEngine = (function () {
         const kw = (item.Keyword || '').toLowerCase().trim();
         for (const token of cleanTokens) {
           if (kw.includes(token)) {
-            manualOverrides.set(kw, id);
+            const kwKey = `${activeProductFamily.toLowerCase()}::${kw}`;
+            manualOverrides.set(kwKey, id);
             autoFilledCount++;
             break;
           }
@@ -481,11 +485,12 @@ window.SubClusterEngine = (function () {
   }
 
   function autoFillBranch(branchId) {
-    const branchDef = subThemeDefinitions.find(st => st.id === branchId);
+    let currentDefs = topicCategoryMap.get(activeProductFamily) || subThemeDefinitions;
+    const branchDef = currentDefs.find(st => st.id === branchId);
     if (!branchDef || !branchDef.tokens || branchDef.tokens.length === 0 || rawDatasetCache.length === 0) return 0;
 
     let filledCount = 0;
-    const currentTree = buildTopicTree(rawDatasetCache);
+    const currentTree = buildTopicTree(rawDatasetCache, activeProductFamily);
     const unclassifiedBranch = (currentTree.branches || []).find(b => b.id === 'unclassified');
     const unclassifiedNodes = unclassifiedBranch ? unclassifiedBranch.nodes : [];
 
@@ -493,7 +498,8 @@ window.SubClusterEngine = (function () {
       const kw = (item.Keyword || '').toLowerCase().trim();
       for (const token of branchDef.tokens) {
         if (kw.includes(token)) {
-          manualOverrides.set(kw, branchId);
+          const kwKey = `${activeProductFamily.toLowerCase()}::${kw}`;
+          manualOverrides.set(kwKey, branchId);
           filledCount++;
           break;
         }
@@ -504,7 +510,8 @@ window.SubClusterEngine = (function () {
   }
 
   function addBranchToken(branchId, token) {
-    const branchDef = subThemeDefinitions.find(st => st.id === branchId);
+    let currentDefs = topicCategoryMap.get(activeProductFamily) || subThemeDefinitions;
+    const branchDef = currentDefs.find(st => st.id === branchId);
     if (!branchDef || !token) return 0;
     const cleanToken = token.toLowerCase().trim();
 
@@ -526,7 +533,8 @@ window.SubClusterEngine = (function () {
   }
 
   function removeBranchToken(branchId, token) {
-    const branchDef = subThemeDefinitions.find(st => st.id === branchId);
+    let currentDefs = topicCategoryMap.get(activeProductFamily) || subThemeDefinitions;
+    const branchDef = currentDefs.find(st => st.id === branchId);
     if (!branchDef || !token) return;
     const cleanToken = token.toLowerCase().trim();
 
@@ -538,17 +546,19 @@ window.SubClusterEngine = (function () {
 
   function reassignKeyword(keyword, targetBranchId) {
     if (!keyword) return;
-    manualOverrides.set(keyword.toLowerCase().trim(), targetBranchId);
+    const kwKey = `${activeProductFamily.toLowerCase()}::${keyword.toLowerCase().trim()}`;
+    manualOverrides.set(kwKey, targetBranchId);
   }
 
   function getSubThemes() {
-    return subThemeDefinitions;
+    return topicCategoryMap.get(activeProductFamily) || subThemeDefinitions;
   }
 
   function exportEngineState() {
     return {
-      subThemeDefinitions: subThemeDefinitions,
+      topicCategoryMap: Array.from(topicCategoryMap.entries()),
       manualOverrides: Array.from(manualOverrides.entries()),
+      knownFocusTopics: Array.from(knownFocusTopics),
       activeProductFamily: activeProductFamily
     };
   }
@@ -560,8 +570,12 @@ window.SubClusterEngine = (function () {
       activeProductFamily = savedState.activeProductFamily;
     }
 
-    if (savedState.subThemeDefinitions && Array.isArray(savedState.subThemeDefinitions)) {
-      subThemeDefinitions = savedState.subThemeDefinitions;
+    if (savedState.knownFocusTopics && Array.isArray(savedState.knownFocusTopics)) {
+      knownFocusTopics = new Set(savedState.knownFocusTopics);
+    }
+
+    if (savedState.topicCategoryMap && Array.isArray(savedState.topicCategoryMap)) {
+      topicCategoryMap = new Map(savedState.topicCategoryMap);
     }
 
     if (savedState.manualOverrides && Array.isArray(savedState.manualOverrides)) {
@@ -577,6 +591,7 @@ window.SubClusterEngine = (function () {
     sanitizeProductFamily: sanitizeProductFamily,
     setProductFamily: setProductFamily,
     getProductFamily: getProductFamily,
+    getKnownFocusTopics: getKnownFocusTopics,
     clearEngineState: clearEngineState,
     bulkDiscardBranch: bulkDiscardBranch,
     addCustomCategory: addCustomCategory,

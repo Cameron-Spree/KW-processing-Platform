@@ -188,7 +188,12 @@
           <div class="card-header">
             <div>
               <h2 class="card-title"><span>🗺️</span> Semantic Topic Architecture & Mindmap Visualizer</h2>
-              <p class="card-subtitle">Heuristically categorizes seed topics into sub-themes. Click any pillar header to expand into Full-Screen Editor!</p>
+              <div style="display:flex; align-items:center; gap:0.6rem; margin-top:0.3rem;">
+                <label style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">Focus Topic Filter:</label>
+                <select class="select-filter" id="select-mindmap-topic" style="font-size:0.78rem; padding:0.25rem 0.65rem; min-width:200px;">
+                  <!-- Dynamic Topic Options -->
+                </select>
+              </div>
             </div>
             <button class="btn btn-primary btn-sm" id="btn-sweep-unclassified" title="Sweeps all remaining unassigned keywords into General Category so 100% get exported">
               🧹 Auto-Categorize Remaining Unclassified ⚡
@@ -293,8 +298,8 @@
         <div style="display:flex; align-items:center; gap:0.75rem;">
           <span style="font-size:1.5rem;">✨</span>
           <div>
-            <h3 class="modal-title">Confirm Product Family & Setup Categories</h3>
-            <p style="font-size:0.8rem; color:var(--text-muted);">Specify your Briants Product Topic to isolate categories and auto-generate tailored pillars:</p>
+            <h3 class="modal-title">Select Focus Pillar Topic (Required)</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Assign your dataset to a Focus Topic so categories stay 100% isolated between product families:</p>
           </div>
         </div>
         <button class="btn btn-icon" id="btn-close-discovery-modal">✕</button>
@@ -304,11 +309,16 @@
         <!-- Product Family Name Input -->
         <div style="margin-bottom:1.25rem; padding:1rem; background:rgba(0,122,255,0.06); border-radius:var(--radius-md); border:1px solid rgba(0,122,255,0.2);">
           <label style="font-size:0.82rem; font-weight:700; color:var(--text-main); display:block; margin-bottom:0.35rem;">
-            🏷️ Briants Master Product Topic / Family:
+            🏷️ Briants Master Focus Pillar Topic (REQUIRED):
           </label>
-          <input type="text" class="input-search" id="input-product-family" value="Chainsaws" placeholder="e.g. Chainsaws, Hedge Trimmers, Fencing & Landscaping, Lawn Tractors" style="width:100%; font-size:0.9rem; font-weight:600;">
-          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.3rem;">
-            Isolates categories (e.g. <em>Hedge Trimmer Safety & PPE</em> vs <em>Chainsaw Safety & PPE</em>) so product batches stay completely separate in your Master Sheet export!
+          <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:0.6rem;">
+            <select class="select-filter" id="select-existing-product-family" style="font-size:0.85rem; padding:0.5rem; width:100%;">
+              <!-- Existing Focus Topics -->
+            </select>
+            <input type="text" class="input-search" id="input-product-family" value="Fencing & Landscaping" placeholder="+ Or type new topic name..." style="width:100%; font-size:0.85rem; font-weight:600;">
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.4rem;">
+            Guarantees strict isolation! When viewing <strong>Chainsaws</strong> in Tab 3, <strong>Fencing</strong> keywords will be completely hidden.
           </p>
         </div>
 

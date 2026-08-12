@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Briants SEO Data Processing Engine
- * Features Smart Product Topic Sanitizer & Clean Concise Category Titles.
+ * Features Focus Pillar Topic Selector & Strict Mindmap Topic Isolation (Chainsaws vs Fencing).
  */
 
 (function () {
@@ -76,6 +76,7 @@
 
       // Tab 3: Mindmap Architecture
       mindmapCanvasContainer: document.getElementById('mindmap-canvas-container'),
+      selectMindmapTopic: document.getElementById('select-mindmap-topic'),
       btnSweepUnclassified: document.getElementById('btn-sweep-unclassified'),
 
       // Tab 4: Master Raw Sheet Sync
@@ -91,6 +92,7 @@
       // Modals
       categoryDiscoveryModal: document.getElementById('category-discovery-modal'),
       btnCloseDiscoveryModal: document.getElementById('btn-close-discovery-modal'),
+      selectExistingProductFamily: document.getElementById('select-existing-product-family'),
       inputProductFamily: document.getElementById('input-product-family'),
       discoveryProposalsContainer: document.getElementById('discovery-proposals-container'),
       btnApplyDiscoveryCategories: document.getElementById('btn-apply-discovery-categories'),
@@ -206,6 +208,17 @@
     if (dom.btnApplyDiscoveryCategories) {
       dom.btnApplyDiscoveryCategories.addEventListener('click', handleApplyDiscoveryCategories);
     }
+    if (dom.selectExistingProductFamily) {
+      dom.selectExistingProductFamily.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val !== 'NEW_TOPIC') {
+          if (dom.inputProductFamily) dom.inputProductFamily.value = val;
+          window.SubClusterEngine.setProductFamily(val);
+          state.discoveryProposals = window.SubClusterEngine.discoverDatasetCategories(state.classifiedItems, val);
+          renderCategoryDiscoveryCards();
+        }
+      });
+    }
     if (dom.inputProductFamily) {
       dom.inputProductFamily.addEventListener('input', (e) => {
         const val = e.target.value.trim() || 'Products';
@@ -215,7 +228,16 @@
       });
     }
 
-    // 5. Mindmap Sweep Action
+    // 5. Mindmap Topic Filter Action
+    if (dom.selectMindmapTopic) {
+      dom.selectMindmapTopic.addEventListener('change', (e) => {
+        const selectedTopic = e.target.value;
+        window.SubClusterEngine.setProductFamily(selectedTopic);
+        renderMindmapView();
+        showToast(`Filtered Mindmap for Focus Topic: "${selectedTopic}" 🗺️`, 'info');
+      });
+    }
+
     if (dom.btnSweepUnclassified) {
       dom.btnSweepUnclassified.addEventListener('click', handleSweepUnclassified);
     }
@@ -442,10 +464,16 @@
       }
 
       state.executionTimeMs = res.summary.executionTimeMs || 0;
-      state.rawItems = res.items;
+      
+      // Tag every imported item with its explicit FocusTopic!
+      state.rawItems = res.items.map(item => ({
+        ...item,
+        FocusTopic: inferredProduct
+      }));
+
       runClassificationAndClustering();
       renderImportSummary(res.summary);
-      showToast(`Imported ${res.items.length} keywords in ${state.executionTimeMs}ms!`, 'success');
+      showToast(`Imported ${res.items.length} keywords for Focus Topic '${inferredProduct}' in ${state.executionTimeMs}ms!`, 'success');
       
       openCategoryDiscoveryModal();
       saveStateToStorage();
@@ -459,6 +487,7 @@
     state.rawItems = window.BriantsSampleData.map((item, idx) => ({
       ...item,
       id: 'kw_' + idx,
+      FocusTopic: item.FocusTopic || 'Chainsaws',
       'Search Volume': window.CSVCleaner ? parseVolumeHelper(item['Search Volume']) : 1000,
       CPC: window.CSVCleaner ? parseCpcHelper(item.CPC) : 1.50
     }));
@@ -495,6 +524,14 @@
     if (!state.classifiedItems || state.classifiedItems.length === 0) {
       showToast('Please import a CSV dataset first.', 'error');
       return;
+    }
+
+    // Populate existing focus topics dropdown
+    const knownTopics = window.SubClusterEngine ? window.SubClusterEngine.getKnownFocusTopics() : ['Chainsaws', 'Fencing & Landscaping', 'Hedge Trimmers'];
+    if (dom.selectExistingProductFamily) {
+      dom.selectExistingProductFamily.innerHTML = knownTopics.map(t => `
+        <option value="${escapeHtml(t)}" ${t === window.SubClusterEngine.getProductFamily() ? 'selected' : ''}>📂 Existing Topic: ${escapeHtml(t)}</option>
+      `).join('') + '<option value="NEW_TOPIC">✏️ + Create New Focus Topic...</option>';
     }
 
     const currentFamily = dom.inputProductFamily ? dom.inputProductFamily.value.trim() || 'Products' : 'Products';
@@ -581,12 +618,17 @@
       return;
     }
 
+    // Tag current items with FocusTopic
+    state.classifiedItems.forEach(item => {
+      if (!item.FocusTopic) item.FocusTopic = pf;
+    });
+
     window.SubClusterEngine.applyDatasetCategoryProposals(selectedProposals);
     saveStateToStorage();
     closeModal(dom.categoryDiscoveryModal);
 
     renderMindmapView();
-    showToast(`Applied ${selectedProposals.length} categories for Product Family '${pf}' & generated Mindmap! ⚡`, 'success');
+    showToast(`Applied ${selectedProposals.length} categories for Focus Topic '${pf}' & generated Mindmap! ⚡`, 'success');
     switchTab('clusters');
   }
 
@@ -691,8 +733,17 @@
   function renderMindmapView() {
     if (!dom.mindmapCanvasContainer || !window.SubClusterEngine || !window.MindmapRenderer) return;
 
-    const currentFilter = window.currentMindmapFilter || 'chainsaw';
-    const treeData = window.SubClusterEngine.buildTopicTree(state.classifiedItems, currentFilter);
+    // Update Mindmap Focus Topic Dropdown Options
+    const knownTopics = window.SubClusterEngine.getKnownFocusTopics();
+    const activeTopic = window.SubClusterEngine.getProductFamily();
+
+    if (dom.selectMindmapTopic) {
+      dom.selectMindmapTopic.innerHTML = knownTopics.map(t => `
+        <option value="${escapeHtml(t)}" ${t === activeTopic ? 'selected' : ''}>📂 Focus Topic: ${escapeHtml(t)}</option>
+      `).join('');
+    }
+
+    const treeData = window.SubClusterEngine.buildTopicTree(state.classifiedItems, activeTopic);
 
     window.MindmapRenderer.renderMindmap(
       treeData,
@@ -912,8 +963,8 @@
   function refreshPillarAndMindmap() {
     renderMindmapView();
     if (state.activePillarBranch) {
-      const currentFilter = window.currentMindmapFilter || 'chainsaw';
-      const updatedTree = window.SubClusterEngine.buildTopicTree(state.classifiedItems, currentFilter);
+      const activeTopic = window.SubClusterEngine ? window.SubClusterEngine.getProductFamily() : 'Fencing & Landscaping';
+      const updatedTree = window.SubClusterEngine.buildTopicTree(state.classifiedItems, activeTopic);
       const updatedBranch = (updatedTree.branches || []).find(b => b.id === state.activePillarBranch.id);
       if (updatedBranch) {
         state.activePillarBranch = updatedBranch;
