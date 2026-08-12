@@ -1,7 +1,7 @@
 /**
  * Enhanced Sub-Clustering & Dynamic Category Discovery Engine for Briants
- * Features Scoped Product Family Isolation (e.g. "Chainsaw Safety" vs "Hedge Trimmer Safety")
- * & Fresh Dataset Reset Engine.
+ * Features Pure Product-Aware N-Gram Feature Extraction Discovery (Fencing, Chainsaws, Hedge Trimmers, Mowers)
+ * so categories reflect the ACTUAL terms in the dataset, avoiding improper hardcoded presets!
  */
 
 window.SubClusterEngine = (function () {
@@ -10,11 +10,8 @@ window.SubClusterEngine = (function () {
   let subThemeDefinitions = [];
   let manualOverrides = new Map();
   let rawDatasetCache = [];
-  let activeProductFamily = 'Chainsaws'; // Default Product Topic
+  let activeProductFamily = 'Fencing & Landscaping';
 
-  /**
-   * Set active Product Topic Family (e.g. "Chainsaws", "Hedge Trimmers", "Fencing")
-   */
   function setProductFamily(familyName) {
     if (familyName && familyName.trim()) {
       activeProductFamily = familyName.trim();
@@ -26,7 +23,8 @@ window.SubClusterEngine = (function () {
   }
 
   /**
-   * Dynamic Category Discovery Engine: Scans raw dataset and scopes proposed categories to active Product Family.
+   * Pure Product-Aware Category Discovery Engine.
+   * Dynamically inspects the dataset terms to suggest relevant categories for ANY Briants product family!
    */
   function discoverDatasetCategories(classifiedItems, productFamily = activeProductFamily) {
     setProductFamily(productFamily);
@@ -36,82 +34,122 @@ window.SubClusterEngine = (function () {
     const totalCount = keywords.length;
     const pf = activeProductFamily;
 
-    const discoveryRules = [
+    // Feature clusters definitions across different Briants product departments
+    const featureTemplates = [
+      // 1. Fencing & Landscaping Feature Rules
       {
-        id: `disc_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_buying`,
-        label: `${pf} Buying Guides & Comparisons`,
-        icon: '🛒',
-        color: '#007aff',
-        testTokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'cheap', 'cost', 'deal', 'hire', 'for sale'],
-        suggestedTokens: ['best', 'top', 'vs', 'review', 'comparison', 'buying', 'price', 'cheap', 'hire']
+        id: 'feat_fence_panels_posts',
+        matchTokens: ['panel', 'post', 'board', 'gravel', 'feather', 'picket', 'slat', 'closeboard', 'overlap', 'trellis', 'rail'],
+        label: `${pf} Panels, Posts & Boards`,
+        icon: '🪵',
+        color: '#8b5cf6',
+        suggestedTokens: ['panel', 'post', 'board', 'gravel board', 'feather edge', 'picket', 'trellis']
       },
       {
-        id: `disc_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_poles`,
-        label: `${pf} Long Reach & Telescopic Models`,
+        id: 'feat_fence_gates_fittings',
+        matchTokens: ['gate', 'latch', 'hinge', 'bracket', 'fitting', 'clip', 'post cap', 'hardware', 'lock'],
+        label: `${pf} Gates, Hardware & Fittings`,
+        icon: '🚧',
+        color: '#ff9500',
+        suggestedTokens: ['gate', 'latch', 'hinge', 'bracket', 'fitting', 'hardware']
+      },
+      {
+        id: 'feat_fence_install_treatment',
+        matchTokens: ['install', 'treatment', 'paint', 'stain', 'preservative', 'concrete', 'metpost', 'fix', 'erect', 'repair', 'cost per metre'],
+        label: `${pf} Installation, Treatment & Maintenance`,
+        icon: '🛠️',
+        color: '#10b981',
+        suggestedTokens: ['install', 'treatment', 'paint', 'stain', 'preservative', 'concrete', 'repair']
+      },
+
+      // 2. High-Reach & Attachment Specific Features (Only triggers if keywords actually contain them!)
+      {
+        id: 'feat_longreach_telescopic',
+        matchTokens: ['long reach', 'telescopic', 'pole', 'extension', 'high hedge', 'high reach'],
+        label: `${pf} Long Reach & Pole Attachments`,
         icon: '🔭',
         color: '#30b0c7',
-        testTokens: ['long reach', 'telescopic', 'pole', 'extension', 'high hedge', 'reach', 'tall', 'one handed', 'handheld', 'small', 'mini'],
-        suggestedTokens: ['long reach', 'telescopic', 'pole', 'extension', 'reach', 'small', 'mini']
+        suggestedTokens: ['long reach', 'telescopic', 'pole', 'extension', 'reach']
       },
+
+      // 3. Power Type Specific Features
       {
-        id: `disc_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_battery`,
+        id: 'feat_battery_cordless',
+        matchTokens: ['battery', 'cordless', 'electric', 'rechargeable', '18v', '36v', '40v', 'lithium'],
         label: `${pf} Cordless & Battery Power`,
         icon: '⚡',
         color: '#10b981',
-        testTokens: ['battery', 'cordless', 'electric', 'rechargeable', '18v', '36v', '40v', 'lithium'],
         suggestedTokens: ['battery', 'cordless', 'electric', 'rechargeable', '18v', '36v']
       },
       {
-        id: `disc_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_maint`,
-        label: `${pf} Maintenance, Sharpening & Care`,
-        icon: '🛠️',
-        color: '#ff9500',
-        testTokens: ['sharpen', 'sharpener', 'file', 'filing', 'blade', 'chain', 'lubricant', 'cleaner', 'spray', 'resin', 'oil', 'mix ratio', 'fuel'],
-        suggestedTokens: ['sharpen', 'sharpener', 'file', 'blade', 'chain', 'lubricant', 'oil', 'mix ratio']
-      },
-      {
-        id: `disc_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_engine`,
-        label: `${pf} Petrol Engines & Engine Spares`,
+        id: 'feat_petrol_fuel',
+        matchTokens: ['petrol', 'gas', '2 stroke', 'engine', 'fuel', 'mix ratio', 'spark plug', 'carburetor'],
+        label: `${pf} Petrol Engines & Fuel Maintenance`,
         icon: '⛽',
         color: '#ff2d55',
-        testTokens: ['petrol', 'gas', '2 stroke', 'engine', 'fuel', 'spark plug', 'carburetor', 'filter', 'sprocket', 'spares', 'parts'],
-        suggestedTokens: ['petrol', 'gas', '2 stroke', 'engine', 'spark plug', 'carburetor', 'spares']
+        suggestedTokens: ['petrol', 'gas', '2 stroke', 'engine', 'fuel', 'spark plug']
       },
+
+      // 4. Machinery Care, Sharpening & Blades (Triggers only if terms exist!)
       {
-        id: `disc_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_brands`,
-        label: `${pf} Brand Models & Specific Gear`,
+        id: 'feat_sharpening_blades',
+        matchTokens: ['sharpen', 'sharpener', 'file', 'filing', 'blade', 'chain', 'lubricant', 'resin', 'sprocket', 'spares'],
+        label: `${pf} Blades, Sharpening & Spares`,
+        icon: '🔪',
+        color: '#ff9500',
+        suggestedTokens: ['sharpen', 'sharpener', 'file', 'blade', 'chain', 'spares']
+      },
+
+      // 5. Commercial, Buying Guides & Pricing
+      {
+        id: 'feat_buying_pricing',
+        matchTokens: ['best', 'top', 'vs', 'review', 'comparison', 'guide', 'buying', 'price', 'cheap', 'cost', 'deal', 'hire', 'for sale', 'quotes', 'per metre'],
+        label: `${pf} Buying Guides, Prices & Cost Estimates`,
+        icon: '🛒',
+        color: '#007aff',
+        suggestedTokens: ['best', 'top', 'vs', 'review', 'buying', 'price', 'cheap', 'cost', 'hire']
+      },
+
+      // 6. Brand Names & Manufacturers
+      {
+        id: 'feat_brands_models',
+        matchTokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'ryobi', 'titan', 'einhell', 'jacksons', 'grange', 'forest garden'],
+        label: `${pf} Brand Gear & Specific Models`,
         icon: '🏷️',
         color: '#8b5cf6',
-        testTokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'ryobi', 'titan', 'einhell', 'mountfield'],
-        suggestedTokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'ryobi', 'titan']
+        suggestedTokens: ['stihl', 'husqvarna', 'makita', 'dewalt', 'bosch', 'jacksons', 'grange']
       },
+
+      // 7. Safety & Protective PPE
       {
-        id: `disc_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_safety`,
-        label: `${pf} Safety & Protective PPE`,
+        id: 'feat_safety_ppe',
+        matchTokens: ['safety', 'ppe', 'goggles', 'glasses', 'gloves', 'helmet', 'visor', 'harness', 'trousers', 'boots', 'chaps'],
+        label: `${pf} Safety Equipment & Protective PPE`,
         icon: '🛡️',
         color: '#af52de',
-        testTokens: ['safety', 'ppe', 'goggles', 'glasses', 'gloves', 'helmet', 'visor', 'harness', 'trousers', 'boots', 'chaps'],
-        suggestedTokens: ['safety', 'ppe', 'goggles', 'gloves', 'helmet', 'visor', 'trousers', 'chaps']
+        suggestedTokens: ['safety', 'ppe', 'goggles', 'gloves', 'helmet', 'visor', 'trousers', 'boots']
       },
+
+      // 8. General Catch-All Category
       {
-        id: `disc_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_general`,
-        label: `${pf} General Terms & Applications`,
+        id: 'feat_general_terms',
+        matchTokens: ['fencing', 'fence', 'landscaping', 'timber', 'wood', 'garden', 'yard', 'uk', 'heavy duty', 'commercial', 'residential', 'diy'],
+        label: `General ${pf} Terms & Applications`,
         icon: '🌿',
         color: '#14b8a6',
-        testTokens: ['trimmer', 'cutter', 'pruner', 'shears', 'saw', 'tool', 'equipment', 'machinery', 'garden', 'uk', 'work', 'heavy duty', 'arborist', 'diy'],
-        suggestedTokens: ['trimmer', 'cutter', 'pruner', 'shears', 'saw', 'tool', 'equipment', 'machinery', 'garden', 'uk']
+        suggestedTokens: ['fencing', 'fence', 'landscaping', 'timber', 'wood', 'garden', 'uk']
       }
     ];
 
     const proposals = [];
 
-    discoveryRules.forEach(rule => {
+    featureTemplates.forEach(rule => {
       const matchingKwList = [];
       let totalMatchingVol = 0;
 
       classifiedItems.forEach(item => {
         const kw = (item.Keyword || '').toLowerCase().trim();
-        for (const token of rule.testTokens) {
+        for (const token of rule.matchTokens) {
           if (kw.includes(token)) {
             matchingKwList.push(item.Keyword);
             totalMatchingVol += (item['Search Volume'] || 0);
@@ -120,6 +158,7 @@ window.SubClusterEngine = (function () {
         }
       });
 
+      // ONLY include proposals that actually matched keywords in the dataset!
       if (matchingKwList.length > 0) {
         const sampleKeywords = matchingKwList.slice(0, 4);
 
@@ -141,13 +180,9 @@ window.SubClusterEngine = (function () {
     return proposals;
   }
 
-  /**
-   * Apply dataset category proposals: Completely resets subThemeDefinitions to selected categories.
-   */
   function applyDatasetCategoryProposals(selectedProposals) {
     if (!selectedProposals || selectedProposals.length === 0) return;
 
-    // Completely wipe old categories to ensure fresh start per dataset
     subThemeDefinitions = selectedProposals.map(prop => {
       const autoMicroTopics = prop.tokens.map((token, idx) => {
         const formattedLabel = token.charAt(0).toUpperCase() + token.slice(1);
@@ -171,9 +206,6 @@ window.SubClusterEngine = (function () {
     manualOverrides.clear();
   }
 
-  /**
-   * Sweep ALL remaining Unclassified keywords into General Product Family Category.
-   */
   function sweepUnclassifiedToCatchAll() {
     if (rawDatasetCache.length === 0) return 0;
 
@@ -182,11 +214,11 @@ window.SubClusterEngine = (function () {
     
     if (!generalBranch) {
       generalBranch = {
-        id: `disc_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_general`,
-        label: `${pf} General Terms & Category Terms`,
+        id: `feat_${pf.toLowerCase().replace(/[^a-z0-9]/g, '_')}_general`,
+        label: `General ${pf} Terms & Category Terms`,
         icon: '🌿',
         color: '#14b8a6',
-        tokens: ['trimmer', 'cutter', 'pruner', 'shears', 'saw', 'tool', 'equipment', 'machinery', 'garden', 'uk'],
+        tokens: ['fencing', 'fence', 'timber', 'wood', 'trimmer', 'cutter', 'garden', 'uk'],
         microTopics: []
       };
       subThemeDefinitions.push(generalBranch);
@@ -206,19 +238,13 @@ window.SubClusterEngine = (function () {
     return sweptCount;
   }
 
-  /**
-   * Clear all sub-themes & manual overrides to start fresh.
-   */
   function clearEngineState() {
     subThemeDefinitions = [];
     manualOverrides.clear();
     rawDatasetCache = [];
-    activeProductFamily = 'Chainsaws';
+    activeProductFamily = 'Fencing & Landscaping';
   }
 
-  /**
-   * Build 3-level Mindmap Data Tree with keyword audit & micro-topic metrics.
-   */
   function buildTopicTree(classifiedItems, seedTopicFilter = 'all') {
     rawDatasetCache = classifiedItems || [];
     let filtered = classifiedItems;
