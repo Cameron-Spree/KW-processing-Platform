@@ -7,6 +7,7 @@ window.SubClusterEngine = (function () {
   'use strict';
 
   // Map of Focus Topic Name -> Array of SubTheme Definitions
+  let subThemeDefinitions = [];
   let topicCategoryMap = new Map();
   let manualOverrides = new Map(); // kw_key -> branchId
   let rawDatasetCache = [];
