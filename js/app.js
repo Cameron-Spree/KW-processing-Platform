@@ -468,17 +468,30 @@
   /* --- Reset Engine & Clear Cache --- */
   function handleResetCache() {
     try {
-      localStorage.removeItem('briants_seo_pipeline_state');
-      if (window.SubClusterEngine) window.SubClusterEngine.clearEngineState();
+      try {
+        localStorage.removeItem('briants_seo_pipeline_state');
+        localStorage.clear();
+      } catch (lsErr) {
+        console.warn('LocalStorage clear warning:', lsErr);
+      }
+
+      if (window.SubClusterEngine && typeof window.SubClusterEngine.clearEngineState === 'function') {
+        window.SubClusterEngine.clearEngineState();
+      }
       
       state.rawItems = [];
       state.classifiedItems = [];
       state.clusters = [];
       state.discoveryProposals = [];
       state.executionTimeMs = 0;
+      state.pendingFileText = null;
+      state.pendingFileName = null;
 
-      closeModal(dom.resetCacheModal);
-      updateHeaderMetrics();
+      if (dom.resetCacheModal) closeModal(dom.resetCacheModal);
+
+      try {
+        updateHeaderMetrics();
+      } catch (mErr) {}
       
       if (dom.importStatsContainer) dom.importStatsContainer.innerHTML = '';
       if (dom.taxonomyTableBody) dom.taxonomyTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">No keywords loaded. Drop a CSV to start fresh!</td></tr>';
@@ -487,7 +500,8 @@
       showToast('Engine cache cleared completely! Ready for fresh CSV import 🧹', 'success');
       switchTab('import');
     } catch (e) {
-      showToast('Failed to clear browser cache.', 'error');
+      console.error('Reset cache failed:', e);
+      showToast('Engine reset error: ' + (e.message || 'Check console log'), 'error');
     }
   }
 
