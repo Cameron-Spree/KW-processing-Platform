@@ -96,6 +96,7 @@
       btnClosePreImportModal: document.getElementById('btn-close-pre-import-modal'),
       preImportFileName: document.getElementById('pre-import-file-name'),
       preImportSelectCategory: document.getElementById('pre-import-select-category'),
+      preImportNewInputContainer: document.getElementById('pre-import-new-input-container'),
       preImportInputCategory: document.getElementById('pre-import-input-category'),
       btnConfirmPreImportCategory: document.getElementById('btn-confirm-pre-import-category'),
 
@@ -202,8 +203,10 @@
     if (dom.preImportSelectCategory) {
       dom.preImportSelectCategory.addEventListener('change', (e) => {
         const val = e.target.value;
-        if (val !== 'NEW_CATEGORY') {
-          if (dom.preImportInputCategory) dom.preImportInputCategory.value = val;
+        if (val === 'NEW_CATEGORY') {
+          if (dom.preImportNewInputContainer) dom.preImportNewInputContainer.style.display = 'block';
+        } else {
+          if (dom.preImportNewInputContainer) dom.preImportNewInputContainer.style.display = 'none';
         }
       });
     }
@@ -423,9 +426,23 @@
       state.pendingFileText = e.target.result;
       state.pendingFileName = file.name;
 
-      const cleanSuggestion = window.SubClusterEngine ? window.SubClusterEngine.sanitizeProductFamily(file.name) : "Fence Posts";
+      const cleanSuggestion = window.SubClusterEngine ? window.SubClusterEngine.sanitizeProductFamily(file.name) : "Products";
+      const knownTopics = window.SubClusterEngine ? window.SubClusterEngine.getKnownFocusTopics() : [];
       
       if (dom.preImportFileName) dom.preImportFileName.textContent = file.name;
+
+      let selectHtml = '';
+      if (knownTopics.length > 0) {
+        selectHtml += knownTopics.map(t => `<option value="${escapeHtml(t)}">📂 ${escapeHtml(t)}</option>`).join('');
+        selectHtml += `<option value="NEW_CATEGORY" selected>✏️ + Create New Category...</option>`;
+      } else {
+        selectHtml = `<option value="NEW_CATEGORY" selected>✏️ + Create New Category...</option>`;
+      }
+
+      if (dom.preImportSelectCategory) dom.preImportSelectCategory.innerHTML = selectHtml;
+      
+      // Always show text input box when NEW_CATEGORY is selected
+      if (dom.preImportNewInputContainer) dom.preImportNewInputContainer.style.display = 'block';
       if (dom.preImportInputCategory) dom.preImportInputCategory.value = cleanSuggestion;
 
       openModal(dom.preImportCategoryModal);
@@ -436,7 +453,15 @@
   function handleConfirmPreImportCategory() {
     if (!state.pendingFileText) return;
 
-    const selectedCategory = (dom.preImportInputCategory ? dom.preImportInputCategory.value.trim() : '') || 'Fence Posts';
+    let selectedCategory = 'Products';
+    const dropVal = dom.preImportSelectCategory ? dom.preImportSelectCategory.value : 'NEW_CATEGORY';
+
+    if (dropVal === 'NEW_CATEGORY') {
+      selectedCategory = (dom.preImportInputCategory ? dom.preImportInputCategory.value.trim() : '') || 'Products';
+    } else {
+      selectedCategory = dropVal;
+    }
+
     window.SubClusterEngine.setProductFamily(selectedCategory);
 
     const res = window.CSVCleaner.processCSV(state.pendingFileText);

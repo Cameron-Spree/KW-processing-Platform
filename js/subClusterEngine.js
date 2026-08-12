@@ -11,8 +11,8 @@ window.SubClusterEngine = (function () {
   let topicCategoryMap = new Map();
   let manualOverrides = new Map(); // kw_key -> branchId
   let rawDatasetCache = [];
-  let activeProductFamily = 'Fencing & Landscaping';
-  let knownFocusTopics = new Set(['Chainsaws', 'Fencing & Landscaping', 'Hedge Trimmers']);
+  let activeProductFamily = '';
+  let knownFocusTopics = new Set();
 
   function sanitizeProductFamily(rawName) {
     if (!rawName) return 'Products';
@@ -254,8 +254,8 @@ window.SubClusterEngine = (function () {
     subThemeDefinitions = [];
     manualOverrides.clear();
     rawDatasetCache = [];
-    knownFocusTopics = new Set(['Chainsaws', 'Fencing & Landscaping', 'Hedge Trimmers']);
-    activeProductFamily = 'Fencing & Landscaping';
+    knownFocusTopics = new Set();
+    activeProductFamily = '';
   }
 
   /**

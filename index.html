@@ -286,15 +286,15 @@
        MODAL DIALOGS
        =================================================================== -->
 
-  <!-- Modal -1: PRE-IMPORT CATEGORY SELECTION PROMPT MODAL (REQUIRED BEFORE UPLOAD) -->
+  <!-- Modal -1: PRE-IMPORT CATEGORY SELECTION PROMPT MODAL (DYNAMIC USER CATEGORIES) -->
   <div class="modal-backdrop" id="pre-import-category-modal">
-    <div class="modal-dialog" style="max-width:560px;">
+    <div class="modal-dialog" style="max-width:540px;">
       <div class="modal-header">
         <div style="display:flex; align-items:center; gap:0.75rem;">
           <span style="font-size:1.5rem;">📥</span>
           <div>
             <h3 class="modal-title">Which Product Category is this CSV for?</h3>
-            <p style="font-size:0.8rem; color:var(--text-muted);">Required step: Specify the product family before populating the app.</p>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Assign this dataset to a category before populating the app.</p>
           </div>
         </div>
         <button class="btn btn-icon" id="btn-close-pre-import-modal">✕</button>
@@ -308,19 +308,20 @@
 
         <div style="display:flex; flex-direction:column; gap:0.75rem;">
           <label style="font-size:0.82rem; font-weight:700; color:var(--text-main);">
-            Select or Type Briants Product Category:
+            Select Product Category:
           </label>
           
           <select class="select-filter" id="pre-import-select-category" style="width:100%; font-size:0.9rem; padding:0.6rem;">
-            <option value="Chainsaws">Chainsaws</option>
-            <option value="Fencing & Landscaping" selected>Fencing & Landscaping</option>
-            <option value="Hedge Trimmers">Hedge Trimmers</option>
-            <option value="Lawn Tractors">Lawn Tractors</option>
-            <option value="Paving Slabs">Paving Slabs</option>
-            <option value="NEW_CATEGORY">✏️ + Enter New Product Category...</option>
+            <!-- Dynamic User Categories Options -->
           </select>
 
-          <input type="text" class="input-search" id="pre-import-input-category" value="Fence Posts" placeholder="Type category name (e.g. Timber Decking)..." style="width:100%; font-size:0.9rem; font-weight:600; display:block;">
+          <!-- Text Input (Only visible when '+ Create New Category...' is selected) -->
+          <div id="pre-import-new-input-container" style="display:none;">
+            <label style="font-size:0.78rem; font-weight:700; color:var(--text-muted); display:block; margin-bottom:0.25rem;">
+              Type New Category Name:
+            </label>
+            <input type="text" class="input-search" id="pre-import-input-category" value="" placeholder="Type category name (e.g. Fence Posts, Chainsaws)..." style="width:100%; font-size:0.9rem; font-weight:600;">
+          </div>
         </div>
       </div>
 
