@@ -48,6 +48,7 @@
       </div>
 
       <div class="header-actions">
+        <button class="btn btn-outline btn-sm" id="btn-open-universal-blockers" style="color:#ef4444; border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.04);" title="Manage Universal Competitor Blockers & Negative Keywords">🚫 Universal Blockers (<span id="header-universal-blocker-count">0</span>)</button>
         <button class="btn btn-secondary btn-sm" id="btn-discover-categories" title="Discover & Setup Categories for active dataset">🔍 Setup Dataset Categories</button>
         <button class="btn btn-outline btn-sm" id="btn-reset-cache-modal" style="color:#ef4444; border-color:rgba(239,68,68,0.3);" title="Clear all browser cache and start fresh">🧹 Reset Cache</button>
         <button class="btn btn-secondary btn-sm" id="btn-load-sample">Load Master Dataset ⚡</button>
@@ -463,6 +464,14 @@
         </div>
       </div>
 
+      <!-- 1-Click Negative Suggestions Tray for Category -->
+      <div id="pillar-exclude-suggestions-container" style="display:flex; align-items:center; gap:0.6rem; padding:0.45rem 1.25rem; background:rgba(239,68,68,0.02); border-bottom:1px solid var(--border-subtle); flex-wrap:wrap;">
+        <span style="font-size:0.74rem; font-weight:700; color:var(--text-muted); white-space:nowrap;">💡 1-Click Suggestions:</span>
+        <div id="pillar-exclude-suggestions-list" style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
+          <!-- 1-Click Competitor Suggestion Chips -->
+        </div>
+      </div>
+
       <div class="modal-body" style="padding:1.25rem;">
         <!-- Micro-Topics Filter Bar -->
         <div id="pillar-micro-topics-bar" style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border-subtle);">
@@ -554,6 +563,56 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="document.getElementById('btn-close-cat-modal').click();">Cancel</button>
         <button class="btn btn-primary" id="btn-save-new-cat">Create Category & Auto-Fill ⚡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5.5: UNIVERSAL KEYWORD BLOCKERS / GLOBAL COMPETITOR BLACKLIST MODAL -->
+  <div class="modal-backdrop" id="universal-blockers-modal">
+    <div class="modal-dialog" style="max-width:720px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <span style="font-size:1.5rem; color:#ef4444;">🚫</span>
+          <div>
+            <h3 class="modal-title">Universal Keyword Blockers (Competitor Blacklist)</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Automatically block competitor brands and negative keywords across ALL categories.</p>
+          </div>
+        </div>
+        <button class="btn btn-icon" id="btn-close-universal-blockers-modal">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:1.25rem;">
+        <!-- Add Blocker Input Bar -->
+        <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem;">
+          <input type="text" id="input-add-universal-blocker" class="input-search" placeholder="Type competitor brand or negative term (e.g. screwfix, wickes, ebay)..." style="flex:1; font-size:0.88rem; padding:0.55rem 0.85rem;">
+          <button class="btn btn-primary" id="btn-add-universal-blocker" style="background:#ef4444; border-color:#ef4444; white-space:nowrap;">+ Block Keyword 🚫</button>
+        </div>
+
+        <!-- 1-Click Suggestions Tray -->
+        <div style="margin-bottom:1.5rem; padding:1rem; background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-md);">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem; flex-wrap:wrap; gap:0.5rem;">
+            <strong style="font-size:0.82rem; color:var(--text-main);">💡 1-Click Competitor & Negative Suggestions:</strong>
+            <span style="font-size:0.72rem; color:var(--text-muted);">Click any chip to add as universal blocker</span>
+          </div>
+          <div id="universal-blockers-suggestions-list" style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+            <!-- Dynamic 1-Click Suggestion Chips -->
+          </div>
+        </div>
+
+        <!-- Active Blockers List -->
+        <div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;">
+            <strong style="font-size:0.85rem; color:var(--text-main);">Active Universal Blockers (<span id="universal-blockers-count">0</span>):</strong>
+            <button class="btn btn-outline btn-sm" id="btn-clear-all-universal-blockers" style="font-size:0.72rem; color:#ef4444; border-color:rgba(239,68,68,0.3);">Clear All Blockers 🧹</button>
+          </div>
+          <div id="universal-blockers-active-pills" style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap; min-height:45px; padding:0.75rem; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
+            <!-- Active blocker pills -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="document.getElementById('btn-close-universal-blockers-modal').click();">Done / Close</button>
       </div>
     </div>
   </div>

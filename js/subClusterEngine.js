@@ -13,6 +13,21 @@ window.SubClusterEngine = (function () {
   let rawDatasetCache = [];
   let activeProductFamily = '';
   let knownFocusTopics = new Set();
+  
+  // Universal / Global Keyword Blockers (Competitor & Negative Blacklist)
+  const DEFAULT_GLOBAL_BLOCKERS = [
+    'screwfix', 'b&q', 'wickes', 'toolstation', 'travis perkins',
+    'amazon', 'ebay', 'gumtree', 'homebase', 'jewson',
+    'selco', 'argos', 'the range', 'howdens', 'travis'
+  ];
+  let globalBlockers = new Set(DEFAULT_GLOBAL_BLOCKERS);
+
+  const COMMON_COMPETITOR_SUGGESTIONS = [
+    'screwfix', 'b&q', 'wickes', 'toolstation', 'travis perkins',
+    'amazon', 'ebay', 'gumtree', 'homebase', 'jewson',
+    'selco', 'argos', 'the range', 'howdens', 'travis',
+    'facebook marketplace', 'screw fix', 'bandq', 'travisperkins'
+  ];
 
   function sanitizeProductFamily(rawName) {
     if (!rawName) return 'Products';
@@ -300,13 +315,50 @@ window.SubClusterEngine = (function () {
       bestFitCount: 0
     });
 
+    branchMap.set('blacklisted', {
+      id: 'blacklisted',
+      label: '🚫 Blacklisted / Competitor Terms',
+      icon: '🚫',
+      color: '#ef4444',
+      branchVolume: 0,
+      nodes: [],
+      exactCount: 0,
+      bestFitCount: 0
+    });
+
     let globalExactCount = 0;
     let globalBestFitCount = 0;
     let globalUnclassifiedCount = 0;
+    let globalBlacklistedCount = 0;
 
     filtered.forEach(item => {
       const kw = (item.Keyword || '').toLowerCase();
       const kwKey = `${targetTopic.toLowerCase()}::${kw}`;
+
+      // 1. Check Universal / Global Competitor Blockers first!
+      let matchedGlobalBlocker = null;
+      for (const blocker of globalBlockers) {
+        if (blocker && kw.includes(blocker.toLowerCase().trim())) {
+          matchedGlobalBlocker = blocker;
+          break;
+        }
+      }
+
+      if (matchedGlobalBlocker) {
+        globalBlacklistedCount++;
+        const branch = branchMap.get('blacklisted');
+        const enrichedItem = {
+          ...item,
+          fitType: 'blacklisted',
+          fitLabel: `🚫 Excluded: ${matchedGlobalBlocker}`,
+          assignedBranchId: 'blacklisted',
+          assignedBranchLabel: 'Blacklisted / Competitor Terms',
+          microTopicLabel: `Competitor: ${matchedGlobalBlocker}`
+        };
+        branch.nodes.push(enrichedItem);
+        branch.branchVolume += (item['Search Volume'] || 0);
+        return;
+      }
 
       if (manualOverrides.has(kwKey)) {
         const overrideBranchId = manualOverrides.get(kwKey);
@@ -394,8 +446,9 @@ window.SubClusterEngine = (function () {
 
     const activeBranches = [];
     branchMap.forEach(branch => {
-      // Keep ALL defined sub-theme categories visible in activeBranches even if empty (nodes.length === 0)
-      if (branch.id !== 'unclassified' || branch.nodes.length > 0) {
+      // Keep ALL defined sub-theme categories visible in activeBranches even if empty.
+      // For unclassified and blacklisted, only include if they have nodes.
+      if ((branch.id !== 'unclassified' && branch.id !== 'blacklisted') || branch.nodes.length > 0) {
         branch.nodes.sort((a, b) => (b['Search Volume'] || 0) - (a['Search Volume'] || 0));
         activeBranches.push(branch);
       }
@@ -409,7 +462,8 @@ window.SubClusterEngine = (function () {
       audit: {
         exactCount: globalExactCount,
         bestFitCount: globalBestFitCount,
-        unclassifiedCount: globalUnclassifiedCount
+        unclassifiedCount: globalUnclassifiedCount,
+        blacklistedCount: globalBlacklistedCount
       },
       branches: activeBranches
     };
@@ -581,7 +635,8 @@ window.SubClusterEngine = (function () {
       topicCategoryMap: Array.from(topicCategoryMap.entries()),
       manualOverrides: Array.from(manualOverrides.entries()),
       knownFocusTopics: Array.from(knownFocusTopics),
-      activeProductFamily: activeProductFamily
+      activeProductFamily: activeProductFamily,
+      globalBlockers: Array.from(globalBlockers)
     };
   }
 
@@ -594,6 +649,10 @@ window.SubClusterEngine = (function () {
 
     if (savedState.knownFocusTopics && Array.isArray(savedState.knownFocusTopics)) {
       knownFocusTopics = new Set(savedState.knownFocusTopics);
+    }
+
+    if (savedState.globalBlockers && Array.isArray(savedState.globalBlockers)) {
+      globalBlockers = new Set(savedState.globalBlockers);
     }
 
     if (savedState.topicCategoryMap && Array.isArray(savedState.topicCategoryMap)) {
@@ -645,6 +704,71 @@ window.SubClusterEngine = (function () {
     branchDef.excludeTokens = branchDef.excludeTokens.filter(t => t !== cleanToken);
   }
 
+  function getGlobalBlockers() {
+    return Array.from(globalBlockers);
+  }
+
+  function addGlobalBlocker(token) {
+    if (!token) return 0;
+    const cleanToken = token.toLowerCase().trim();
+    if (!cleanToken) return 0;
+
+    globalBlockers.add(cleanToken);
+
+    let matchCount = 0;
+    if (rawDatasetCache && rawDatasetCache.length > 0) {
+      rawDatasetCache.forEach(item => {
+        const kw = (item.Keyword || '').toLowerCase().trim();
+        if (kw.includes(cleanToken)) {
+          matchCount++;
+        }
+      });
+    }
+    return matchCount;
+  }
+
+  function removeGlobalBlocker(token) {
+    if (!token) return;
+    const cleanToken = token.toLowerCase().trim();
+    globalBlockers.delete(cleanToken);
+  }
+
+  function clearAllGlobalBlockers() {
+    globalBlockers.clear();
+  }
+
+  function getCompetitorSuggestions(existingTokens = []) {
+    const existingSet = new Set((existingTokens || []).map(t => t.toLowerCase().trim()));
+    const suggestions = [];
+
+    COMMON_COMPETITOR_SUGGESTIONS.forEach(comp => {
+      const cleanComp = comp.toLowerCase().trim();
+      if (existingSet.has(cleanComp)) return;
+
+      let matchCount = 0;
+      let totalVolume = 0;
+
+      if (rawDatasetCache && rawDatasetCache.length > 0) {
+        rawDatasetCache.forEach(item => {
+          const kw = (item.Keyword || '').toLowerCase().trim();
+          if (kw.includes(cleanComp)) {
+            matchCount++;
+            totalVolume += (item['Search Volume'] || 0);
+          }
+        });
+      }
+
+      suggestions.push({
+        token: cleanComp,
+        matchCount: matchCount,
+        totalVolume: totalVolume
+      });
+    });
+
+    suggestions.sort((a, b) => b.matchCount - a.matchCount);
+    return suggestions;
+  }
+
   return {
     buildTopicTree: buildTopicTree,
     discoverDatasetCategories: discoverDatasetCategories,
@@ -654,6 +778,11 @@ window.SubClusterEngine = (function () {
     setProductFamily: setProductFamily,
     getProductFamily: getProductFamily,
     getKnownFocusTopics: getKnownFocusTopics,
+    getGlobalBlockers: getGlobalBlockers,
+    addGlobalBlocker: addGlobalBlocker,
+    removeGlobalBlocker: removeGlobalBlocker,
+    clearAllGlobalBlockers: clearAllGlobalBlockers,
+    getCompetitorSuggestions: getCompetitorSuggestions,
     clearEngineState: clearEngineState,
     bulkDiscardBranch: bulkDiscardBranch,
     addCustomCategory: addCustomCategory,

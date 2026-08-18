@@ -22,7 +22,7 @@ window.MindmapRenderer = (function () {
     // 1. Audit Summary Bar
     const auditBar = document.createElement('div');
     auditBar.className = 'mindmap-audit-bar';
-    const audit = treeData.audit || { exactCount: 0, bestFitCount: 0, unclassifiedCount: 0 };
+    const audit = treeData.audit || { exactCount: 0, bestFitCount: 0, unclassifiedCount: 0, blacklistedCount: 0 };
 
     auditBar.innerHTML = `
       <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
@@ -39,11 +39,20 @@ window.MindmapRenderer = (function () {
         <button class="audit-chip purple ${activeAuditFilter === 'unclassified' ? 'active' : ''}" data-filter="unclassified">
           ❓ Unclassified (${audit.unclassifiedCount})
         </button>
+        ${(audit.blacklistedCount || 0) > 0 ? `
+        <button class="audit-chip red ${activeAuditFilter === 'blacklisted' ? 'active' : ''}" data-filter="blacklisted" style="color:#ef4444; border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.06);">
+          🚫 Blacklisted (${audit.blacklistedCount})
+        </button>` : ''}
       </div>
 
-      <button class="btn btn-primary btn-sm" id="btn-create-category-modal">
-        + Create New Category ➕
-      </button>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <button class="btn btn-outline btn-sm" id="btn-open-universal-blockers-mindmap" style="color:#ef4444; border-color:rgba(239,68,68,0.35); font-size:0.75rem; padding:0.25rem 0.65rem;">
+          🚫 Manage Blockers
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-create-category-modal">
+          + Create New Category ➕
+        </button>
+      </div>
     `;
 
     wrapper.appendChild(auditBar);
@@ -102,6 +111,15 @@ window.MindmapRenderer = (function () {
     const btnCreateCat = auditBar.querySelector('#btn-create-category-modal');
     if (btnCreateCat && onCreateCategory) {
       btnCreateCat.addEventListener('click', onCreateCategory);
+    }
+
+    const btnOpenBlockers = auditBar.querySelector('#btn-open-universal-blockers-mindmap');
+    if (btnOpenBlockers) {
+      btnOpenBlockers.addEventListener('click', () => {
+        if (window.BriantsApp && window.BriantsApp.openUniversalBlockersModal) {
+          window.BriantsApp.openUniversalBlockersModal();
+        }
+      });
     }
 
     const topicSelect = toolbar.querySelector('#mindmap-topic-select');

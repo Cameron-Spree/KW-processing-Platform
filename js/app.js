@@ -58,6 +58,8 @@
       btnThemeToggle: document.getElementById('btn-theme-toggle'),
       btnDiscoverCategories: document.getElementById('btn-discover-categories'),
       btnResetCacheModal: document.getElementById('btn-reset-cache-modal'),
+      btnOpenUniversalBlockers: document.getElementById('btn-open-universal-blockers'),
+      headerUniversalBlockerCount: document.getElementById('header-universal-blocker-count'),
 
       // Navigation
       navTabs: document.querySelectorAll('.nav-tab'),
@@ -132,8 +134,18 @@
       pillarExcludeAddContainer: document.getElementById('pillar-exclude-add-container'),
       inputAddPillarExcludeToken: document.getElementById('input-add-pillar-exclude-token'),
       btnAddPillarExcludeToken: document.getElementById('btn-add-pillar-exclude-token'),
+      pillarExcludeSuggestionsList: document.getElementById('pillar-exclude-suggestions-list'),
       pillarMicroTopicsBar: document.getElementById('pillar-micro-topics-bar'),
       pillarEditorTbody: document.getElementById('pillar-editor-tbody'),
+
+      universalBlockersModal: document.getElementById('universal-blockers-modal'),
+      btnCloseUniversalBlockersModal: document.getElementById('btn-close-universal-blockers-modal'),
+      inputAddUniversalBlocker: document.getElementById('input-add-universal-blocker'),
+      btnAddUniversalBlocker: document.getElementById('btn-add-universal-blocker'),
+      universalBlockersSuggestionsList: document.getElementById('universal-blockers-suggestions-list'),
+      universalBlockersCount: document.getElementById('universal-blockers-count'),
+      btnClearAllUniversalBlockers: document.getElementById('btn-clear-all-universal-blockers'),
+      universalBlockersActivePills: document.getElementById('universal-blockers-active-pills'),
 
       reassignModal: document.getElementById('reassign-modal'),
       btnCloseReassignModal: document.getElementById('btn-close-reassign-modal'),
@@ -278,6 +290,38 @@
 
     if (dom.btnSaveRules) {
       dom.btnSaveRules.addEventListener('click', handleSaveRules);
+    }
+
+    // 7.5 Universal Blocker Modal Controls
+    if (dom.btnOpenUniversalBlockers) {
+      dom.btnOpenUniversalBlockers.addEventListener('click', openUniversalBlockersModal);
+    }
+    if (dom.btnCloseUniversalBlockersModal) {
+      dom.btnCloseUniversalBlockersModal.addEventListener('click', () => closeModal(dom.universalBlockersModal));
+    }
+    if (dom.btnAddUniversalBlocker) {
+      dom.btnAddUniversalBlocker.addEventListener('click', () => {
+        if (!dom.inputAddUniversalBlocker) return;
+        const val = dom.inputAddUniversalBlocker.value.trim();
+        if (val) {
+          handleAddUniversalBlocker(val);
+          dom.inputAddUniversalBlocker.value = '';
+        }
+      });
+    }
+    if (dom.inputAddUniversalBlocker) {
+      dom.inputAddUniversalBlocker.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const val = dom.inputAddUniversalBlocker.value.trim();
+          if (val) {
+            handleAddUniversalBlocker(val);
+            dom.inputAddUniversalBlocker.value = '';
+          }
+        }
+      });
+    }
+    if (dom.btnClearAllUniversalBlockers) {
+      dom.btnClearAllUniversalBlockers.addEventListener('click', handleClearAllUniversalBlockers);
     }
 
     // 8. Pillar Editor Modal Controls
@@ -704,6 +748,11 @@
     if (dom.metricTotalVol) dom.metricTotalVol.textContent = totalVol.toLocaleString();
     if (dom.metricClusters) dom.metricClusters.textContent = totalClusters;
     if (dom.metricSpeed) dom.metricSpeed.textContent = `${state.executionTimeMs} ms`;
+
+    if (dom.headerUniversalBlockerCount && window.SubClusterEngine) {
+      const blockers = window.SubClusterEngine.getGlobalBlockers();
+      dom.headerUniversalBlockerCount.textContent = blockers.length;
+    }
   }
 
   function renderImportSummary(summary) {
@@ -878,6 +927,33 @@
         });
       }
     }
+
+    // 3. 1-Click Negative Suggestions Tray for Category
+    if (dom.pillarExcludeSuggestionsList) {
+      const suggestions = window.SubClusterEngine.getCompetitorSuggestions(branch.excludeTokens || []);
+      if (suggestions.length === 0) {
+        dom.pillarExcludeSuggestionsList.innerHTML = `<span style="font-size:0.72rem; color:var(--text-dim);">All common competitor tags added!</span>`;
+      } else {
+        dom.pillarExcludeSuggestionsList.innerHTML = suggestions.slice(0, 12).map(s => `
+          <button class="audit-chip btn-suggest-pillar-exclude" data-token="${escapeHtml(s.token)}" style="font-size:0.72rem; padding:0.18rem 0.5rem; cursor:pointer; background:rgba(239,68,68,0.04); color:#dc2626; border-color:rgba(239,68,68,0.25);" title="Click to exclude from this category">
+            + ${escapeHtml(s.token)} ${s.matchCount > 0 ? `<span style="opacity:0.8; font-weight:700; font-size:0.68rem;">(${s.matchCount})</span>` : ''}
+          </button>
+        `).join('');
+
+        const sugBtns = dom.pillarExcludeSuggestionsList.querySelectorAll('.btn-suggest-pillar-exclude');
+        sugBtns.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const tokenToAdd = btn.dataset.token || e.target.dataset.token;
+            if (tokenToAdd) {
+              const purged = window.SubClusterEngine.addBranchExcludeToken(branch.id, tokenToAdd);
+              saveStateToStorage();
+              showToast(`Added negative token "!${tokenToAdd}" & purged ${purged} keywords! Saved 💾`, 'warning');
+              refreshPillarAndMindmap();
+            }
+          });
+        });
+      }
+    }
   }
 
   function handleAddPillarToken() {
@@ -904,6 +980,89 @@
 
     showToast(`Added negative token "!${val}" & purged ${purgedCount} matching keywords! Saved 💾`, 'warning');
     refreshPillarAndMindmap();
+  }
+
+  /* --- Universal Keyword Blockers Modal Logic --- */
+  function openUniversalBlockersModal() {
+    renderUniversalBlockersModalContent();
+    openModal(dom.universalBlockersModal);
+  }
+
+  function renderUniversalBlockersModalContent() {
+    const blockers = window.SubClusterEngine.getGlobalBlockers();
+    if (dom.universalBlockersCount) dom.universalBlockersCount.textContent = blockers.length;
+    if (dom.headerUniversalBlockerCount) dom.headerUniversalBlockerCount.textContent = blockers.length;
+
+    // 1. Render Active Blocker Pills
+    if (dom.universalBlockersActivePills) {
+      if (blockers.length === 0) {
+        dom.universalBlockersActivePills.innerHTML = `<span style="font-size:0.8rem; color:var(--text-dim); font-style:italic;">No universal blockers configured. Keywords will be categorized normally.</span>`;
+      } else {
+        dom.universalBlockersActivePills.innerHTML = blockers.map(token => `
+          <span class="audit-chip" style="font-size:0.78rem; padding:0.25rem 0.65rem; background:rgba(239,68,68,0.08); color:#dc2626; border-color:rgba(239,68,68,0.3);">
+            🚫 !${escapeHtml(token)}
+            <span class="btn-remove-universal-blocker" data-token="${escapeHtml(token)}" style="margin-left:0.4rem; cursor:pointer; font-weight:700; color:#dc2626;" title="Remove Blocker">✕</span>
+          </span>
+        `).join('');
+
+        const removeBtns = dom.universalBlockersActivePills.querySelectorAll('.btn-remove-universal-blocker');
+        removeBtns.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const token = e.target.dataset.token;
+            if (token) handleRemoveUniversalBlocker(token);
+          });
+        });
+      }
+    }
+
+    // 2. Render 1-Click Suggestions Tray
+    if (dom.universalBlockersSuggestionsList) {
+      const suggestions = window.SubClusterEngine.getCompetitorSuggestions(blockers);
+      if (suggestions.length === 0) {
+        dom.universalBlockersSuggestionsList.innerHTML = `<span style="font-size:0.75rem; color:var(--text-dim);">All suggested competitor blockers have been added!</span>`;
+      } else {
+        dom.universalBlockersSuggestionsList.innerHTML = suggestions.map(s => `
+          <button class="audit-chip btn-suggest-universal-blocker" data-token="${escapeHtml(s.token)}" style="font-size:0.75rem; padding:0.25rem 0.65rem; cursor:pointer; background:rgba(239,68,68,0.05); color:#dc2626; border-color:rgba(239,68,68,0.3); font-weight:600;" title="Click to add as Universal Blocker">
+            + ${escapeHtml(s.token)} ${s.matchCount > 0 ? `<span style="padding:0.1rem 0.35rem; background:rgba(239,68,68,0.15); border-radius:10px; font-size:0.7rem; font-weight:700; margin-left:0.25rem;">${s.matchCount} matched</span>` : ''}
+          </button>
+        `).join('');
+
+        const sugBtns = dom.universalBlockersSuggestionsList.querySelectorAll('.btn-suggest-universal-blocker');
+        sugBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const token = btn.dataset.token;
+            if (token) handleAddUniversalBlocker(token);
+          });
+        });
+      }
+    }
+  }
+
+  function handleAddUniversalBlocker(token) {
+    if (!token) return;
+    const matchCount = window.SubClusterEngine.addGlobalBlocker(token);
+    saveStateToStorage();
+    renderUniversalBlockersModalContent();
+    renderMindmapView();
+    showToast(`Added universal blocker "!${token}" (${matchCount} matching keywords blocked)! Saved 💾`, 'warning');
+  }
+
+  function handleRemoveUniversalBlocker(token) {
+    if (!token) return;
+    window.SubClusterEngine.removeGlobalBlocker(token);
+    saveStateToStorage();
+    renderUniversalBlockersModalContent();
+    renderMindmapView();
+    showToast(`Removed universal blocker "!${token}"! Saved 💾`, 'info');
+  }
+
+  function handleClearAllUniversalBlockers() {
+    if (!confirm('Are you sure you want to clear all universal keyword blockers?')) return;
+    window.SubClusterEngine.clearAllGlobalBlockers();
+    saveStateToStorage();
+    renderUniversalBlockersModalContent();
+    renderMindmapView();
+    showToast('Cleared all universal blockers! Saved 💾', 'info');
   }
 
   function renderMicroTopicsBar(branch) {
@@ -1207,6 +1366,7 @@
   // Global Exports for inline onclicks
   window.BriantsApp = {
     refreshMindmap: renderMindmapView,
-    openCategoryDiscoveryModal: openCategoryDiscoveryModal
+    openCategoryDiscoveryModal: openCategoryDiscoveryModal,
+    openUniversalBlockersModal: openUniversalBlockersModal
   };
 })();

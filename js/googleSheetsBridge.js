@@ -40,7 +40,7 @@ window.GoogleSheetsBridge = (function () {
       return classifiedItems.filter(item => {
         const kw = (item.Keyword || '').toLowerCase().trim();
         const info = kwMap.get(kw);
-        return info && info.branchId !== 'unclassified';
+        return info && info.branchId !== 'unclassified' && info.branchId !== 'blacklisted';
       });
     }
 
