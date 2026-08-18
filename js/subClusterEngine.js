@@ -383,7 +383,8 @@ window.SubClusterEngine = (function () {
 
     const activeBranches = [];
     branchMap.forEach(branch => {
-      if (branch.nodes.length > 0) {
+      // Keep ALL defined sub-theme categories visible in activeBranches even if empty (nodes.length === 0)
+      if (branch.id !== 'unclassified' || branch.nodes.length > 0) {
         branch.nodes.sort((a, b) => (b['Search Volume'] || 0) - (a['Search Volume'] || 0));
         activeBranches.push(branch);
       }

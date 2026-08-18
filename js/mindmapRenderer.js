@@ -185,11 +185,11 @@ window.MindmapRenderer = (function () {
 
         <div class="mindmap-branch-stats">
           <span>Vol: <strong>${(branch.branchVolume || 0).toLocaleString()}</strong></span>
-          <span>✓ ${branch.exactCount} Exact | ⚡ ${branch.bestFitCount} Best Fit</span>
+          <span>${branch.nodes.length === 0 ? '<strong style="color:var(--text-muted);">📭 Empty Category</strong>' : `✓ ${branch.exactCount} Exact | ⚡ ${branch.bestFitCount} Best Fit`}</span>
         </div>
 
         <div class="mindmap-leaf-nodes-list">
-          ${filteredNodes.map(node => {
+          ${filteredNodes.length > 0 ? filteredNodes.map(node => {
             const nodeVol = node['Search Volume'] || 0;
             const fitBadgeClass = 'badge-fit-' + (node.fitType || 'unclassified');
             return `
@@ -204,7 +204,14 @@ window.MindmapRenderer = (function () {
                 </div>
               </div>
             `;
-          }).join('')}
+          }).join('') : `
+            <div class="mindmap-empty-branch-box" style="padding:0.75rem; text-align:center; background:rgba(0,122,255,0.04); border:1px dashed rgba(0,122,255,0.25); border-radius:var(--radius-sm); margin-top:0.4rem; cursor:pointer;" title="Click to open Pillar Editor & Auto-Populate">
+              <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">📭 0 Keywords Assigned</div>
+              <div style="font-size:0.72rem; color:var(--primary); margin-top:0.25rem; font-weight:600;">
+                + Click to Audit & Auto-Populate ⚡
+              </div>
+            </div>
+          `}
         </div>
       `;
 
@@ -217,8 +224,11 @@ window.MindmapRenderer = (function () {
         if (onExpandPillar) onExpandPillar(branch);
       };
 
+      const emptyBox = branchCard.querySelector('.mindmap-empty-branch-box');
+
       if (expandBtn) expandBtn.addEventListener('click', triggerExpand);
       if (headerEl) headerEl.addEventListener('click', triggerExpand);
+      if (emptyBox) emptyBox.addEventListener('click', triggerExpand);
 
       // Wire Reassign Buttons
       const reassignBtns = branchCard.querySelectorAll('.btn-reassign-kw');
