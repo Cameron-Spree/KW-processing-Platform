@@ -435,10 +435,10 @@
         </div>
       </div>
       
-      <!-- Trigger Tokens & Rule Keywords Bar -->
+      <!-- Trigger Tokens & Positive Keywords Bar -->
       <div id="pillar-tokens-editor-bar" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.75rem 1.25rem; background:rgba(255,255,255,0.7); border-bottom:1px solid var(--border-subtle); backdrop-filter:blur(10px);">
         <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; flex:1;">
-          <span style="font-size:0.78rem; font-weight:700; color:var(--text-main); white-space:nowrap;">🔑 Auto-Populate Tokens:</span>
+          <span style="font-size:0.78rem; font-weight:700; color:var(--text-main); white-space:nowrap;">🔑 Positive Auto-Populate Tokens:</span>
           <div id="pillar-tokens-pill-list" style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
             <!-- Dynamic token pills -->
           </div>
@@ -449,13 +449,27 @@
         </div>
       </div>
 
+      <!-- Negative / Exclude Tokens Bar -->
+      <div id="pillar-exclude-editor-bar" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.6rem 1.25rem; background:rgba(239,68,68,0.04); border-bottom:1px solid var(--border-subtle);">
+        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; flex:1;">
+          <span style="font-size:0.78rem; font-weight:700; color:#dc2626; white-space:nowrap;">🚫 Negative / Exclude Tokens (Blacklist):</span>
+          <div id="pillar-exclude-pill-list" style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+            <!-- Exclude token pills -->
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.4rem;" id="pillar-exclude-add-container">
+          <input type="text" id="input-add-pillar-exclude-token" class="input-search" placeholder="+ Exclude (e.g. screwfix, b&q)..." style="font-size:0.78rem; padding:0.25rem 0.65rem; min-width:170px;">
+          <button class="btn btn-outline btn-sm" id="btn-add-pillar-exclude-token" style="font-size:0.75rem; padding:0.25rem 0.65rem; color:#dc2626; border-color:rgba(220,38,38,0.3);">Exclude 🚫</button>
+        </div>
+      </div>
+
       <div class="modal-body" style="padding:1.25rem;">
         <!-- Micro-Topics Filter Bar -->
         <div id="pillar-micro-topics-bar" style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border-subtle);">
           <!-- Dynamic Micro-Topic Pills -->
         </div>
 
-        <div class="table-responsive" style="max-height: calc(88vh - 250px);">
+        <div class="table-responsive" style="max-height: calc(88vh - 280px);">
           <table class="data-table">
             <thead>
               <tr>
@@ -504,7 +518,7 @@
     </div>
   </div>
 
-  <!-- Modal 4: Create Custom Category Modal with Auto-Fill Checkbox -->
+  <!-- Modal 4: Create Custom Category Modal with Negative Tokens -->
   <div class="modal-backdrop" id="new-category-modal">
     <div class="modal-dialog" style="max-width:540px;">
       <div class="modal-header">
@@ -522,8 +536,12 @@
             <input type="text" class="input-search" id="input-cat-icon" placeholder="⚡, 🚜, 📜, 💼" value="🏷️" style="width:100%;">
           </div>
           <div>
-            <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:0.3rem;">Trigger Tokens (comma separated):</label>
+            <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:0.3rem;">🔑 Positive Trigger Tokens (comma separated):</label>
             <input type="text" class="input-search" id="input-cat-tokens" placeholder="e.g. hire, rent, electric, history, invented" style="width:100%;">
+          </div>
+          <div>
+            <label style="font-size:0.8rem; font-weight:700; display:block; margin-bottom:0.3rem; color:#dc2626;">🚫 Negative / Exclude Tokens (comma separated):</label>
+            <input type="text" class="input-search" id="input-cat-exclude-tokens" placeholder="e.g. screwfix, b&q, wickes, ebay, amazon, toolstation" style="width:100%;">
           </div>
           <div style="display:flex; align-items:center; gap:0.6rem; margin-top:0.5rem; padding:0.75rem; background:rgba(16,185,129,0.08); border-radius:var(--radius-md); border:1px solid rgba(16,185,129,0.2);">
             <input type="checkbox" id="chk-autofill-cat" checked style="width:18px; height:18px; cursor:pointer;">

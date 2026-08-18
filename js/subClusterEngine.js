@@ -337,6 +337,17 @@ window.SubClusterEngine = (function () {
       let maxScore = 0;
 
       for (const st of currentTopicDefs) {
+        // Check Negative / Exclude Tokens first!
+        let isExcludedByNegativeToken = false;
+        const excludes = st.excludeTokens || [];
+        for (const excToken of excludes) {
+          if (excToken && kw.includes(excToken.toLowerCase().trim())) {
+            isExcludedByNegativeToken = true;
+            break;
+          }
+        }
+        if (isExcludedByNegativeToken) continue; // Skip category if negative token matched!
+
         let score = 0;
         for (const token of st.tokens) {
           if (kw.includes(token)) {
@@ -427,11 +438,12 @@ window.SubClusterEngine = (function () {
     });
   }
 
-  function addCustomCategory(categoryName, categoryIcon = '📁', categoryTokens = [], autoFill = true) {
+  function addCustomCategory(categoryName, categoryIcon = '📁', categoryTokens = [], categoryExcludeTokens = [], autoFill = true) {
     const id = 'custom_' + categoryName.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const colors = ['#007aff', '#ff9500', '#10b981', '#af52de', '#ff2d55', '#30b0c7'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     const cleanTokens = categoryTokens.map(t => t.toLowerCase().trim()).filter(Boolean);
+    const cleanExcludeTokens = categoryExcludeTokens.map(t => t.toLowerCase().trim()).filter(Boolean);
 
     const autoMicroTopics = cleanTokens.map((token, idx) => {
       const formattedLabel = token.charAt(0).toUpperCase() + token.slice(1);
@@ -448,6 +460,7 @@ window.SubClusterEngine = (function () {
     if (existingIdx >= 0) {
       currentDefs[existingIdx].label = categoryName;
       currentDefs[existingIdx].tokens = cleanTokens;
+      currentDefs[existingIdx].excludeTokens = cleanExcludeTokens;
       currentDefs[existingIdx].microTopics = autoMicroTopics;
     } else {
       currentDefs.push({
@@ -456,6 +469,7 @@ window.SubClusterEngine = (function () {
         icon: categoryIcon,
         color: randomColor,
         tokens: cleanTokens,
+        excludeTokens: cleanExcludeTokens,
         microTopics: autoMicroTopics
       });
     }
@@ -472,12 +486,18 @@ window.SubClusterEngine = (function () {
 
       unclassifiedNodes.forEach(item => {
         const kw = (item.Keyword || '').toLowerCase().trim();
-        for (const token of cleanTokens) {
-          if (kw.includes(token)) {
-            const kwKey = `${activeProductFamily.toLowerCase()}::${kw}`;
-            manualOverrides.set(kwKey, id);
-            autoFilledCount++;
-            break;
+        let isExcluded = false;
+        for (const exc of cleanExcludeTokens) {
+          if (kw.includes(exc)) { isExcluded = true; break; }
+        }
+        if (!isExcluded) {
+          for (const token of cleanTokens) {
+            if (kw.includes(token)) {
+              const kwKey = `${activeProductFamily.toLowerCase()}::${kw}`;
+              manualOverrides.set(kwKey, id);
+              autoFilledCount++;
+              break;
+            }
           }
         }
       });
@@ -585,6 +605,46 @@ window.SubClusterEngine = (function () {
     }
   }
 
+  function addBranchExcludeToken(branchId, token) {
+    let currentDefs = topicCategoryMap.get(activeProductFamily) || subThemeDefinitions;
+    const branchDef = currentDefs.find(st => st.id === branchId);
+    if (!branchDef || !token) return 0;
+    const cleanToken = token.toLowerCase().trim();
+
+    if (!branchDef.excludeTokens) branchDef.excludeTokens = [];
+
+    if (!branchDef.excludeTokens.includes(cleanToken)) {
+      branchDef.excludeTokens.push(cleanToken);
+
+      let purgedCount = 0;
+      const pf = activeProductFamily.toLowerCase();
+      const currentTree = buildTopicTree(rawDatasetCache, activeProductFamily);
+      const targetBranch = (currentTree.branches || []).find(b => b.id === branchId);
+
+      if (targetBranch && targetBranch.nodes) {
+        targetBranch.nodes.forEach(node => {
+          const kw = (node.Keyword || '').toLowerCase().trim();
+          if (kw.includes(cleanToken)) {
+            const kwKey = `${pf}::${kw}`;
+            manualOverrides.set(kwKey, 'unclassified');
+            purgedCount++;
+          }
+        });
+      }
+      return purgedCount;
+    }
+    return 0;
+  }
+
+  function removeBranchExcludeToken(branchId, token) {
+    let currentDefs = topicCategoryMap.get(activeProductFamily) || subThemeDefinitions;
+    const branchDef = currentDefs.find(st => st.id === branchId);
+    if (!branchDef || !token || !branchDef.excludeTokens) return;
+    const cleanToken = token.toLowerCase().trim();
+
+    branchDef.excludeTokens = branchDef.excludeTokens.filter(t => t !== cleanToken);
+  }
+
   return {
     buildTopicTree: buildTopicTree,
     discoverDatasetCategories: discoverDatasetCategories,
@@ -600,6 +660,8 @@ window.SubClusterEngine = (function () {
     autoFillBranch: autoFillBranch,
     addBranchToken: addBranchToken,
     removeBranchToken: removeBranchToken,
+    addBranchExcludeToken: addBranchExcludeToken,
+    removeBranchExcludeToken: removeBranchExcludeToken,
     reassignKeyword: reassignKeyword,
     getSubThemes: getSubThemes,
     exportEngineState: exportEngineState,

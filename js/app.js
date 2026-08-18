@@ -128,6 +128,10 @@
       pillarTokensPillList: document.getElementById('pillar-tokens-pill-list'),
       inputAddPillarToken: document.getElementById('input-add-pillar-token'),
       btnAddPillarToken: document.getElementById('btn-add-pillar-token'),
+      pillarExcludePillList: document.getElementById('pillar-exclude-pill-list'),
+      pillarExcludeAddContainer: document.getElementById('pillar-exclude-add-container'),
+      inputAddPillarExcludeToken: document.getElementById('input-add-pillar-exclude-token'),
+      btnAddPillarExcludeToken: document.getElementById('btn-add-pillar-exclude-token'),
       pillarMicroTopicsBar: document.getElementById('pillar-micro-topics-bar'),
       pillarEditorTbody: document.getElementById('pillar-editor-tbody'),
 
@@ -142,6 +146,7 @@
       inputCatName: document.getElementById('input-cat-name'),
       inputCatIcon: document.getElementById('input-cat-icon'),
       inputCatTokens: document.getElementById('input-cat-tokens'),
+      inputCatExcludeTokens: document.getElementById('input-cat-exclude-tokens'),
       chkAutofillCat: document.getElementById('chk-autofill-cat'),
       btnSaveNewCat: document.getElementById('btn-save-new-cat'),
 
@@ -294,6 +299,15 @@
     if (dom.inputAddPillarToken) {
       dom.inputAddPillarToken.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleAddPillarToken();
+      });
+    }
+
+    if (dom.btnAddPillarExcludeToken) {
+      dom.btnAddPillarExcludeToken.addEventListener('click', handleAddPillarExcludeToken);
+    }
+    if (dom.inputAddPillarExcludeToken) {
+      dom.inputAddPillarExcludeToken.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAddPillarExcludeToken();
       });
     }
 
@@ -803,36 +817,67 @@
     if (branch.id === 'unclassified') {
       dom.pillarTokensPillList.innerHTML = `<span style="font-size:0.78rem; color:var(--text-muted);">Unassigned queue receives keywords that do not match any pillar tokens.</span>`;
       if (dom.pillarTokensAddContainer) dom.pillarTokensAddContainer.style.display = 'none';
+      if (dom.pillarExcludeAddContainer) dom.pillarExcludeAddContainer.style.display = 'none';
+      if (dom.pillarExcludePillList) dom.pillarExcludePillList.innerHTML = `<span style="font-size:0.78rem; color:var(--text-dim);">N/A</span>`;
       return;
     }
 
     if (dom.pillarTokensAddContainer) dom.pillarTokensAddContainer.style.display = 'flex';
+    if (dom.pillarExcludeAddContainer) dom.pillarExcludeAddContainer.style.display = 'flex';
 
+    // 1. Positive Tokens
     const tokens = branch.tokens || [];
     if (tokens.length === 0) {
-      dom.pillarTokensPillList.innerHTML = `<span style="font-size:0.78rem; color:var(--text-dim);">No trigger tokens set for this category.</span>`;
-      return;
+      dom.pillarTokensPillList.innerHTML = `<span style="font-size:0.78rem; color:var(--text-dim);">No positive trigger tokens set.</span>`;
+    } else {
+      const pillsHtml = tokens.map(token => `
+        <span class="audit-chip" style="font-size:0.75rem; padding:0.2rem 0.55rem; background:rgba(0,122,255,0.08); color:var(--primary); border-color:rgba(0,122,255,0.2);">
+          ${escapeHtml(token)}
+          <span class="btn-remove-token" data-token="${escapeHtml(token)}" style="margin-left:0.35rem; cursor:pointer; font-weight:700; color:#ef4444;" title="Remove Token">✕</span>
+        </span>
+      `).join('');
+
+      dom.pillarTokensPillList.innerHTML = pillsHtml;
+
+      const removeBtns = dom.pillarTokensPillList.querySelectorAll('.btn-remove-token');
+      removeBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const tokenToRemove = e.target.dataset.token;
+          window.SubClusterEngine.removeBranchToken(branch.id, tokenToRemove);
+          saveStateToStorage();
+          showToast(`Removed trigger token "${tokenToRemove}"! Saved 💾`, 'info');
+          refreshPillarAndMindmap();
+        });
+      });
     }
 
-    const pillsHtml = tokens.map(token => `
-      <span class="audit-chip" style="font-size:0.75rem; padding:0.2rem 0.55rem; background:rgba(0,122,255,0.08); color:var(--primary); border-color:rgba(0,122,255,0.2);">
-        ${escapeHtml(token)}
-        <span class="btn-remove-token" data-token="${escapeHtml(token)}" style="margin-left:0.35rem; cursor:pointer; font-weight:700; color:#ef4444;" title="Remove Token">✕</span>
-      </span>
-    `).join('');
+    // 2. Negative Exclude Tokens (Blacklist)
+    if (dom.pillarExcludePillList) {
+      const excludes = branch.excludeTokens || [];
+      if (excludes.length === 0) {
+        dom.pillarExcludePillList.innerHTML = `<span style="font-size:0.78rem; color:var(--text-dim);">No negative exclude tokens set.</span>`;
+      } else {
+        const excludePillsHtml = excludes.map(token => `
+          <span class="audit-chip" style="font-size:0.75rem; padding:0.2rem 0.55rem; background:rgba(239,68,68,0.08); color:#dc2626; border-color:rgba(239,68,68,0.3);">
+            !${escapeHtml(token)}
+            <span class="btn-remove-exclude-token" data-token="${escapeHtml(token)}" style="margin-left:0.35rem; cursor:pointer; font-weight:700; color:#dc2626;" title="Remove Exclude Token">✕</span>
+          </span>
+        `).join('');
 
-    dom.pillarTokensPillList.innerHTML = pillsHtml;
+        dom.pillarExcludePillList.innerHTML = excludePillsHtml;
 
-    const removeBtns = dom.pillarTokensPillList.querySelectorAll('.btn-remove-token');
-    removeBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const tokenToRemove = e.target.dataset.token;
-        window.SubClusterEngine.removeBranchToken(branch.id, tokenToRemove);
-        saveStateToStorage();
-        showToast(`Removed trigger token "${tokenToRemove}"! Saved 💾`, 'info');
-        refreshPillarAndMindmap();
-      });
-    });
+        const removeExBtns = dom.pillarExcludePillList.querySelectorAll('.btn-remove-exclude-token');
+        removeExBtns.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const tokenToRemove = e.target.dataset.token;
+            window.SubClusterEngine.removeBranchExcludeToken(branch.id, tokenToRemove);
+            saveStateToStorage();
+            showToast(`Removed negative token "!${tokenToRemove}"! Saved 💾`, 'info');
+            refreshPillarAndMindmap();
+          });
+        });
+      }
+    }
   }
 
   function handleAddPillarToken() {
@@ -845,6 +890,19 @@
     dom.inputAddPillarToken.value = '';
 
     showToast(`Added trigger token "${val}" & auto-populated ${autoPulledCount} keywords! Saved 💾`, 'success');
+    refreshPillarAndMindmap();
+  }
+
+  function handleAddPillarExcludeToken() {
+    if (!state.activePillarBranch || !dom.inputAddPillarExcludeToken) return;
+    const val = dom.inputAddPillarExcludeToken.value.trim();
+    if (!val) return;
+
+    const purgedCount = window.SubClusterEngine.addBranchExcludeToken(state.activePillarBranch.id, val);
+    saveStateToStorage();
+    dom.inputAddPillarExcludeToken.value = '';
+
+    showToast(`Added negative token "!${val}" & purged ${purgedCount} matching keywords! Saved 💾`, 'warning');
     refreshPillarAndMindmap();
   }
 
@@ -1027,6 +1085,7 @@
     const name = dom.inputCatName.value.trim();
     const icon = dom.inputCatIcon.value.trim() || '🏷️';
     const tokens = dom.inputCatTokens.value.split(',').map(t => t.trim()).filter(Boolean);
+    const excludeTokens = dom.inputCatExcludeTokens ? dom.inputCatExcludeTokens.value.split(',').map(t => t.trim()).filter(Boolean) : [];
     const autoFill = dom.chkAutofillCat ? dom.chkAutofillCat.checked : true;
 
     if (!name) {
@@ -1034,12 +1093,13 @@
       return;
     }
 
-    const res = window.SubClusterEngine.addCustomCategory(name, icon, tokens, autoFill);
+    const res = window.SubClusterEngine.addCustomCategory(name, icon, tokens, excludeTokens, autoFill);
     saveStateToStorage();
     closeModal(dom.newCategoryModal);
 
     dom.inputCatName.value = '';
     dom.inputCatTokens.value = '';
+    if (dom.inputCatExcludeTokens) dom.inputCatExcludeTokens.value = '';
 
     renderMindmapView();
     showToast(`Created category "${name}", auto-filled ${res.autoFilledCount} unclassified keywords & ${res.microTopicsCount} micro-topics! Saved 💾`, 'success');
